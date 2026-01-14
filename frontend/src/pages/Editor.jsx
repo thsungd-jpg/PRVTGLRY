@@ -60,6 +60,7 @@ export default function Editor() {
   const [showPresetDialog, setShowPresetDialog] = useState(false);
   const [previewKey, setPreviewKey] = useState(0);
   const [selectedDevice, setSelectedDevice] = useState('desktop');
+  const [viewMode, setViewMode] = useState('preview'); // 'preview' or 'interactive'
 
   useEffect(() => {
     loadPresets();
