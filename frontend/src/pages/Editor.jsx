@@ -197,158 +197,261 @@ export default function Editor() {
   };
 
   return (
-    <div className="editor-layout">
-      {/* Left Panel - Assets & Presets */}
-      <div className="editor-panel" data-testid="asset-panel">
-        <div className="p-4 border-b border-white/10">
-          <h2 className="text-lg font-bold text-primary">PWA Builder</h2>
-          <p className="text-xs text-muted-foreground mt-1">Build & customize your PWA</p>
+    <div className="editor-layout-new">
+      {/* Top Controls Bar */}
+      <div className="editor-top-controls">
+        {/* App Name & Actions */}
+        <div className="editor-controls-section">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-primary">Project Settings</h3>
+            <div className="flex gap-1">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowPresetDialog(true)}
+                data-testid="save-preset-btn"
+              >
+                <Save className="w-3 h-3" />
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleGeneratePWA}
+                disabled={loading}
+                data-testid="generate-pwa-btn"
+              >
+                {loading ? <span className="spinner" /> : <Download className="w-3 h-3" />}
+              </Button>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs">App Name</Label>
+            <Input
+              value={config.app_name}
+              onChange={(e) => updateConfig('app_name', e.target.value)}
+              data-testid="app-name-input"
+            />
+          </div>
         </div>
-        
-        <AssetPanel 
-          config={config} 
-          updateConfig={updateConfig}
-          presets={presets}
-          onLoadPreset={handleLoadPreset}
-          onDeletePreset={handleDeletePreset}
-        />
+
+        {/* Colors */}
+        <div className="editor-controls-section">
+          <h3 className="text-sm font-semibold text-primary mb-3">Colors</h3>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Label className="text-xs flex-1">Icon</Label>
+              <input
+                type="color"
+                value={config.icon_color}
+                onChange={(e) => updateConfig('icon_color', e.target.value)}
+                className="w-10 h-10"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Label className="text-xs flex-1">Text</Label>
+              <input
+                type="color"
+                value={config.text_color}
+                onChange={(e) => updateConfig('text_color', e.target.value)}
+                className="w-10 h-10"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Label className="text-xs flex-1">Background</Label>
+              <input
+                type="color"
+                value={config.background_color}
+                onChange={(e) => updateConfig('background_color', e.target.value)}
+                className="w-10 h-10"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Glow Effects */}
+        <div className="editor-controls-section">
+          <h3 className="text-sm font-semibold text-primary mb-3">Glow Effects</h3>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Buttons Glow</Label>
+              <Switch
+                checked={config.glow_effects?.buttons || false}
+                onCheckedChange={(checked) => updateConfig('glow_effects', {
+                  ...config.glow_effects,
+                  buttons: checked
+                })}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Text Glow</Label>
+              <Switch
+                checked={config.glow_effects?.text || false}
+                onCheckedChange={(checked) => updateConfig('glow_effects', {
+                  ...config.glow_effects,
+                  text: checked
+                })}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Images Glow</Label>
+              <Switch
+                checked={config.glow_effects?.images || false}
+                onCheckedChange={(checked) => updateConfig('glow_effects', {
+                  ...config.glow_effects,
+                  images: checked
+                })}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Video Glow</Label>
+              <Switch
+                checked={config.glow_effects?.video || false}
+                onCheckedChange={(checked) => updateConfig('glow_effects', {
+                  ...config.glow_effects,
+                  video: checked
+                })}
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Glow Intensity</Label>
+              <input
+                type="range"
+                min="10"
+                max="60"
+                value={config.glow_effects?.intensity || 20}
+                onChange={(e) => updateConfig('glow_effects', {
+                  ...config.glow_effects,
+                  intensity: parseInt(e.target.value)
+                })}
+                className="w-full mt-1"
+              />
+              <span className="text-xs text-muted-foreground">{config.glow_effects?.intensity || 20}px</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Layout Controls */}
+        <div className="editor-controls-section">
+          <h3 className="text-sm font-semibold text-primary mb-3">Layout</h3>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Snap to Grid</Label>
+              <Switch
+                checked={config.layout?.snapEnabled || false}
+                onCheckedChange={(checked) => updateConfig('layout', {
+                  ...config.layout,
+                  snapEnabled: checked
+                })}
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Grid: {config.layout?.snapGrid || 10}px</Label>
+              <input
+                type="range"
+                min="5"
+                max="50"
+                step="5"
+                value={config.layout?.snapGrid || 10}
+                onChange={(e) => updateConfig('layout', {
+                  ...config.layout,
+                  snapGrid: parseInt(e.target.value)
+                })}
+                className="w-full mt-1"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* More sections in tabs */}
+        <div className="editor-controls-section" style={{ minWidth: '350px' }}>
+          <Tabs defaultValue="templates" className="w-full">
+            <TabsList className="w-full grid grid-cols-3 mb-3">
+              <TabsTrigger value="templates" className="text-xs">Templates</TabsTrigger>
+              <TabsTrigger value="pages" className="text-xs">Pages</TabsTrigger>
+              <TabsTrigger value="assets" className="text-xs">Assets</TabsTrigger>
+            </TabsList>
+            <TabsContent value="templates" className="max-h-60 overflow-y-auto">
+              <TemplatesPanel onApplyTemplate={handleApplyTemplate} />
+            </TabsContent>
+            <TabsContent value="pages" className="max-h-60 overflow-y-auto">
+              <PagesPanel config={config} updateConfig={updateConfig} />
+            </TabsContent>
+            <TabsContent value="assets" className="max-h-60 overflow-y-auto">
+              <AssetPanel 
+                config={config} 
+                updateConfig={updateConfig}
+                presets={presets}
+                onLoadPreset={handleLoadPreset}
+                onDeletePreset={handleDeletePreset}
+              />
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
 
-      {/* Center Panel - Preview */}
-      <div className="editor-canvas" data-testid="preview-canvas">
-        <div className="flex items-center justify-between p-3 bg-card border-b border-white/10">
+      {/* Bottom Canvas */}
+      <div className="editor-canvas-container">
+        <div className="canvas-header">
           <div className="flex items-center gap-2">
             <Settings className="w-4 h-4 text-muted-foreground" />
             <span className="text-sm font-medium">{config.app_name}</span>
           </div>
-          
+
           <div className="flex gap-2">
+            {/* Device Selector */}
+            <div className="flex gap-1 border border-border rounded">
+              <Button
+                size="sm"
+                variant={selectedDevice === 'desktop' ? 'default' : 'ghost'}
+                onClick={() => setSelectedDevice('desktop')}
+                className="rounded-none"
+              >
+                <Monitor className="w-4 h-4" />
+              </Button>
+              <Button
+                size="sm"
+                variant={selectedDevice === 'tablet' ? 'default' : 'ghost'}
+                onClick={() => setSelectedDevice('tablet')}
+                className="rounded-none"
+              >
+                <Tablet className="w-4 h-4" />
+              </Button>
+              <Button
+                size="sm"
+                variant={selectedDevice === 'mobile' ? 'default' : 'ghost'}
+                onClick={() => setSelectedDevice('mobile')}
+                className="rounded-none"
+              >
+                <Smartphone className="w-4 h-4" />
+              </Button>
+            </div>
+
             <Button
               size="sm"
               variant={viewMode === 'interactive' ? 'default' : 'ghost'}
               onClick={() => setViewMode(viewMode === 'preview' ? 'interactive' : 'preview')}
-              data-testid="toggle-interactive-btn"
             >
               <Move className="w-4 h-4 mr-1" />
               {viewMode === 'interactive' ? 'Interactive' : 'Preview'}
             </Button>
-            
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={refreshPreview}
-              data-testid="refresh-preview-btn"
-            >
+
+            <Button size="sm" variant="ghost" onClick={refreshPreview}>
               <Play className="w-4 h-4 mr-1" />
               Refresh
             </Button>
-            
-            <input
-              type="file"
-              accept=".json"
-              onChange={handleImportConfig}
-              className="hidden"
-              id="import-config"
-            />
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => document.getElementById('import-config').click()}
-              data-testid="import-config-btn"
-            >
-              <Upload className="w-4 h-4 mr-1" />
-              Import
-            </Button>
-            
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setShowPresetDialog(true)}
-              data-testid="save-preset-btn"
-            >
-              <Save className="w-4 h-4 mr-1" />
-              Save Preset
-            </Button>
-            
-            <Button
-              size="sm"
-              onClick={handleGeneratePWA}
-              disabled={loading}
-              data-testid="generate-pwa-btn"
-            >
-              {loading ? (
-                <span className="spinner" />
-              ) : (
-                <>
-                  <Download className="w-4 h-4 mr-1" />
-                  Generate PWA
-                </>
-              )}
-            </Button>
           </div>
         </div>
-        
-        <DevicePreview selectedDevice={selectedDevice} onDeviceChange={setSelectedDevice}>
+
+        <div className="canvas-workspace">
           {viewMode === 'interactive' ? (
             <InteractiveCanvas config={config} updateConfig={updateConfig} />
           ) : (
-            <PreviewCanvas key={previewKey} config={config} />
+            <div className="w-full h-full flex items-center justify-center p-8">
+              <div className="device-frame" style={{ width: selectedDevice === 'mobile' ? 375 : selectedDevice === 'tablet' ? 768 : '100%', height: '100%', maxHeight: '90%' }}>
+                <PreviewCanvas key={previewKey} config={config} />
+              </div>
+            </div>
           )}
-        </DevicePreview>
-      </div>
-
-      {/* Right Panel - Properties & Advanced */}
-      <div className="editor-panel border-l" data-testid="properties-panel">
-        <Tabs defaultValue="properties" className="h-full flex flex-col">
-          <div className="p-2 border-b border-white/10">
-            <TabsList className="w-full grid grid-cols-3 gap-1">
-              <TabsTrigger value="properties" className="text-xs px-1" data-testid="properties-tab">
-                <Settings className="w-3 h-3" />
-              </TabsTrigger>
-              <TabsTrigger value="pages" className="text-xs px-1" data-testid="pages-tab">
-                <FileText className="w-3 h-3" />
-              </TabsTrigger>
-              <TabsTrigger value="buttons" className="text-xs px-1" data-testid="buttons-tab">
-                <MousePointer2 className="w-3 h-3" />
-              </TabsTrigger>
-            </TabsList>
-            <TabsList className="w-full grid grid-cols-3 gap-1 mt-1">
-              <TabsTrigger value="templates" className="text-xs px-1" data-testid="templates-tab">
-                <LayoutTemplate className="w-3 h-3" />
-              </TabsTrigger>
-              <TabsTrigger value="layout" className="text-xs px-1" data-testid="layout-tab">
-                <Move className="w-3 h-3" />
-              </TabsTrigger>
-              <TabsTrigger value="advanced" className="text-xs px-1" data-testid="advanced-tab">
-                <Sliders className="w-3 h-3" />
-              </TabsTrigger>
-            </TabsList>
-          </div>
-
-          <TabsContent value="properties" className="flex-1 mt-0">
-            <PropertiesPanel config={config} updateConfig={updateConfig} />
-          </TabsContent>
-
-          <TabsContent value="pages" className="flex-1 mt-0">
-            <PagesPanel config={config} updateConfig={updateConfig} />
-          </TabsContent>
-
-          <TabsContent value="buttons" className="flex-1 mt-0">
-            <ButtonAnimationsPanel config={config} updateConfig={updateConfig} />
-          </TabsContent>
-
-          <TabsContent value="templates" className="flex-1 mt-0">
-            <TemplatesPanel onApplyTemplate={handleApplyTemplate} />
-          </TabsContent>
-
-          <TabsContent value="layout" className="flex-1 mt-0">
-            <LayoutPanel config={config} updateConfig={updateConfig} />
-          </TabsContent>
-
-          <TabsContent value="advanced" className="flex-1 mt-0">
-            <AdvancedPanel config={config} updateConfig={updateConfig} />
-          </TabsContent>
-        </Tabs>
+        </div>
       </div>
 
       {/* Preset Dialog */}
