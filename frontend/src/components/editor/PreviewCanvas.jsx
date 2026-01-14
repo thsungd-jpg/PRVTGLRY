@@ -36,10 +36,12 @@ function generatePreviewHTML(config) {
   const bgImages = config.background_images || [];
   const galleryImages = config.gallery_images || [];
   const videoTracks = config.video_tracks || [];
+  const audioTracks = config.audio_tracks || [];
   const pages = config.pages || [{ id: 'home', title: 'Home' }];
   const animations = config.animations || [];
   const customCSS = config.custom_css || '';
   const layoutElements = config.layout?.elements || [];
+  const glowEffects = config.glow_effects || {};
 
   // Generate animation keyframes
   const animationCSS = animations.map(anim => `
@@ -50,6 +52,15 @@ function generatePreviewHTML(config) {
       animation: ${anim.name} ${anim.duration}ms ${anim.timing} ${anim.iteration};
     }
   `).join('\n');
+
+  // Generate glow CSS
+  const glowIntensity = glowEffects.intensity || 20;
+  const glowCSS = `
+    ${glowEffects.buttons ? `.nav-links button { box-shadow: 0 0 ${glowIntensity}px currentColor; }` : ''}
+    ${glowEffects.text ? `h1, h2, h3 { text-shadow: 0 0 ${glowIntensity}px currentColor; }` : ''}
+    ${glowEffects.images ? `.gallery img { box-shadow: 0 0 ${glowIntensity}px rgba(255,255,255,0.5); }` : ''}
+    ${glowEffects.video ? `video { box-shadow: 0 0 ${glowIntensity}px rgba(255,255,255,0.5); }` : ''}
+  `;
 
   return `
     <!DOCTYPE html>
