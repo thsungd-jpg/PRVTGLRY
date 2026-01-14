@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Download, Upload, Play, Settings } from 'lucide-react';
+import { Save, Download, Upload, Play, Settings, Sliders } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,10 +7,13 @@ import { toast } from 'sonner';
 import axios from 'axios';
 import AssetPanel from '@/components/editor/AssetPanel';
 import PropertiesPanel from '@/components/editor/PropertiesPanel';
+import AdvancedPanel from '@/components/editor/AdvancedPanel';
 import PreviewCanvas from '@/components/editor/PreviewCanvas';
+import DevicePreview from '@/components/editor/DevicePreview';
 import PresetDialog from '@/components/editor/PresetDialog';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -33,7 +36,9 @@ const defaultConfig = {
   fx_settings: {
     blur: false,
     whiteTint: false
-  }
+  },
+  animations: [],
+  custom_css: ''
 };
 
 export default function Editor() {
@@ -42,6 +47,7 @@ export default function Editor() {
   const [loading, setLoading] = useState(false);
   const [showPresetDialog, setShowPresetDialog] = useState(false);
   const [previewKey, setPreviewKey] = useState(0);
+  const [selectedDevice, setSelectedDevice] = useState('desktop');
 
   useEffect(() => {
     loadPresets();
@@ -242,16 +248,35 @@ export default function Editor() {
           </div>
         </div>
         
-        <PreviewCanvas key={previewKey} config={config} />
+        <DevicePreview selectedDevice={selectedDevice} onDeviceChange={setSelectedDevice}>
+          <PreviewCanvas key={previewKey} config={config} />
+        </DevicePreview>
       </div>
 
-      {/* Right Panel - Properties */}
+      {/* Right Panel - Properties & Advanced */}
       <div className="editor-panel border-l" data-testid="properties-panel">
-        <div className="p-4 border-b border-white/10">
-          <h3 className="text-sm font-semibold text-primary">Properties</h3>
-        </div>
-        
-        <PropertiesPanel config={config} updateConfig={updateConfig} />
+        <Tabs defaultValue="properties" className="h-full flex flex-col">
+          <div className="p-3 border-b border-white/10">
+            <TabsList className="w-full grid grid-cols-2">
+              <TabsTrigger value="properties" className="text-xs" data-testid="properties-tab">
+                <Settings className="w-3 h-3 mr-1" />
+                Properties
+              </TabsTrigger>
+              <TabsTrigger value="advanced" className="text-xs" data-testid="advanced-tab">
+                <Sliders className="w-3 h-3 mr-1" />
+                Advanced
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          <TabsContent value="properties" className="flex-1 mt-0">
+            <PropertiesPanel config={config} updateConfig={updateConfig} />
+          </TabsContent>
+
+          <TabsContent value="advanced" className="flex-1 mt-0">
+            <AdvancedPanel config={config} updateConfig={updateConfig} />
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Preset Dialog */}
