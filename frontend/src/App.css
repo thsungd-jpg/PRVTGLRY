@@ -4,6 +4,55 @@
   background: hsl(var(--background));
 }
 
+/* New layout structure - Top controls, bottom canvas */
+.editor-layout-new {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.editor-top-controls {
+  background: hsl(var(--card));
+  border-bottom: 1px solid hsl(var(--border));
+  padding: 1rem;
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+}
+
+.editor-controls-section {
+  min-width: 300px;
+  max-width: 400px;
+  background: hsl(var(--background));
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.editor-canvas-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #0A0A0A;
+}
+
+.canvas-header {
+  background: hsl(var(--card));
+  border-bottom: 1px solid hsl(var(--border));
+  padding: 0.75rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.canvas-workspace {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+}
+
 /* Navbar */
 .navbar {
   background: hsl(var(--card));
@@ -52,6 +101,21 @@
   font-weight: 600;
   margin-bottom: 12px;
   color: hsl(var(--primary));
+}
+
+/* Glow effects */
+.glow-effect {
+  box-shadow: 0 0 20px currentColor;
+  filter: drop-shadow(0 0 10px currentColor);
+}
+
+.glow-text {
+  text-shadow: 0 0 20px currentColor;
+}
+
+.glow-strong {
+  box-shadow: 0 0 30px currentColor, 0 0 60px currentColor;
+  filter: drop-shadow(0 0 20px currentColor);
 }
 
 /* File upload area */
@@ -143,4 +207,28 @@ input[type="range"]::-moz-range-thumb {
   cursor: pointer;
   border: none;
   box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+}
+
+/* Playlist styles */
+.playlist-container {
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+.playlist-item {
+  padding: 0.5rem;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.playlist-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.playlist-item.active {
+  background: rgba(245, 158, 11, 0.2);
+  border-left: 3px solid #F59E0B;
 }
