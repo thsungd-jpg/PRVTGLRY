@@ -48,6 +48,13 @@ const defaultConfig = {
     blur: false,
     whiteTint: false
   },
+  glow_effects: {
+    buttons: false,
+    text: false,
+    images: false,
+    video: false,
+    intensity: 20
+  },
   animations: [],
   custom_css: '',
   layout: {
