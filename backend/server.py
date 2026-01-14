@@ -187,6 +187,21 @@ def generate_pwa_files(config: Dict[str, Any]) -> Dict[str, str]:
     icon_color = config.get('icon_color', '#F59E0B')
     text_color = config.get('text_color', '#FFFFFF')
     bg_color = config.get('background_color', '#000000')
+    animations = config.get('animations', [])
+    custom_css = config.get('custom_css', '')
+    
+    # Generate animation CSS
+    animation_css = '\n'.join([
+        f"""
+@keyframes {anim['name']} {{
+  {anim['keyframes']}
+}}
+.anim-{anim['name']} {{
+  animation: {anim['name']} {anim['duration']}ms {anim['timing']} {anim.get('iteration', 'infinite')};
+}}
+        """
+        for anim in animations
+    ])
     
     # Generate package.json
     package_json = {
