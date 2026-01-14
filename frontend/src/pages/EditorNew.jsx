@@ -383,13 +383,184 @@ export default function EditorNew() {
         {/* Sidebar */}
         <div className={`editor-sidebar ${!sidebarOpen ? 'collapsed' : ''}`}>
           <div className="sidebar-content">
+            <Tabs defaultValue="templates" className="w-full">
+              <TabsList className="w-full grid grid-cols-4 mb-3 bg-transparent border border-primary/20">
+                <TabsTrigger value="templates" className="text-xs data-[state=active]:bg-primary/20">
+                  <LayoutTemplate className="w-3 h-3" />
+                </TabsTrigger>
+                <TabsTrigger value="images" className="text-xs data-[state=active]:bg-primary/20">
+                  <Image className="w-3 h-3" />
+                </TabsTrigger>
+                <TabsTrigger value="video" className="text-xs data-[state=active]:bg-primary/20">
+                  <Video className="w-3 h-3" />
+                </TabsTrigger>
+                <TabsTrigger value="audio" className="text-xs data-[state=active]:bg-primary/20">
+                  <Music className="w-3 h-3" />
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="templates" className="space-y-2 mt-0">
+                <div className="section-header">
+                  <LayoutTemplate className="w-3 h-3" />
+                  Templates
+                </div>
+                {layoutTemplates.map((template) => (
+                  <div
+                    key={template.id}
+                    className="list-item"
+                    onClick={() => applyTemplate(template)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium">{template.name}</span>
+                      <span className="text-xs text-muted-foreground">{template.elements.length}</span>
+                    </div>
+                  </div>
+                ))}
+              </TabsContent>
+
+              <TabsContent value="images" className="space-y-2 mt-0">
+                <div className="section-header">
+                  <Image className="w-3 h-3" />
+                  Images
+                </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleImageUpload(e, 'background')}
+                  className="hidden"
+                  id="bg-upload"
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full compact-btn"
+                  onClick={() => document.getElementById('bg-upload').click()}
+                >
+                  Upload Background
+                </Button>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleImageUpload(e, 'gallery')}
+                  className="hidden"
+                  id="gallery-upload"
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full compact-btn"
+                  onClick={() => document.getElementById('gallery-upload').click()}
+                >
+                  Upload Gallery Image
+                </Button>
+                <div className="space-y-1 mt-3">
+                  {(config.background_images || []).map((img, idx) => (
+                    <div key={idx} className="list-item">
+                      <span className="text-xs truncate">{img.name}</span>
+                    </div>
+                  ))}
+                  {(config.gallery_images || []).map((img, idx) => (
+                    <div key={idx} className="list-item">
+                      <span className="text-xs truncate">{img.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="video" className="space-y-2 mt-0">
+                <div className="section-header">
+                  <Video className="w-3 h-3" />
+                  Videos
+                </div>
+                <input
+                  type="file"
+                  accept="video/*"
+                  onChange={handleVideoUpload}
+                  className="hidden"
+                  id="video-upload"
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full compact-btn"
+                  onClick={() => document.getElementById('video-upload').click()}
+                >
+                  Upload Video
+                </Button>
+                <div className="space-y-1 mt-3">
+                  {(config.video_tracks || []).map((video, idx) => (
+                    <div key={idx} className="list-item">
+                      <div className="flex items-center gap-2">
+                        <Video className="w-3 h-3 text-primary flex-shrink-0" />
+                        <span className="text-xs truncate">{video.title}</span>
+                      </div>
+                    </div>
+                  ))}
+                  {(config.video_tracks || []).length > 1 && (
+                    <div className="status-badge mt-2">
+                      Playlist Enabled
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="audio" className="space-y-2 mt-0">
+                <div className="section-header">
+                  <Music className="w-3 h-3" />
+                  Audio
+                </div>
+                <input
+                  type="file"
+                  accept="audio/*"
+                  onChange={handleAudioUpload}
+                  className="hidden"
+                  id="audio-upload"
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full compact-btn"
+                  onClick={() => document.getElementById('audio-upload').click()}
+                >
+                  Upload Audio
+                </Button>
+                <div className="space-y-1 mt-3">
+                  {(config.audio_tracks || []).map((audio, idx) => (
+                    <div key={idx} className="list-item">
+                      <div className="flex items-center gap-2">
+                        <Music className="w-3 h-3 text-primary flex-shrink-0" />
+                        <span className="text-xs truncate">{audio.title}</span>
+                      </div>
+                    </div>
+                  ))}
+                  {(config.audio_tracks || []).length > 1 && (
+                    <div className="status-badge mt-2">
+                      Playlist Enabled
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+            </Tabs>
+
+            <div className="cyber-divider" />
+            
             <div className="section-header">
               <Layers className="w-3 h-3" />
-              Elements
+              Elements on Canvas
             </div>
             <p className="text-xs text-muted-foreground">
-              {config.layout?.elements?.length || 0} elements on canvas
+              {config.layout?.elements?.length || 0} elements
             </p>
+            {(config.layout?.elements || []).map((el, idx) => (
+              <div key={el.id} className="list-item mt-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium capitalize">{el.type}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {el.x}, {el.y}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
