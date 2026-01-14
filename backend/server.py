@@ -323,7 +323,7 @@ function App() {{
                   <source src={{video.url}} type="video/mp4" />
                   Your browser does not support the video tag.
                 </video>
-                <p style={{{{ textAlign: 'center', marginTop: '0.5rem' }}}}>{video.title}</p>
+                <p style={{{{ textAlign: 'center', marginTop: '0.5rem' }}}}>{{{video.title}}}</p>
               </div>
             ))}}
           </div>
