@@ -33,9 +33,11 @@ export default function PreviewCanvas({ config }) {
 function generatePreviewHTML(config) {
   const bgImages = config.background_images || [];
   const galleryImages = config.gallery_images || [];
+  const videoTracks = config.video_tracks || [];
   const pages = config.pages || [{ id: 'home', title: 'Home' }];
   const animations = config.animations || [];
   const customCSS = config.custom_css || '';
+  const layoutElements = config.layout?.elements || [];
 
   // Generate animation keyframes
   const animationCSS = animations.map(anim => `
