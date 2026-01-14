@@ -404,6 +404,12 @@ export default App;
   background: rgba(255, 255, 255, 0.05);
   padding: 1rem;
 }}
+
+/* Custom Animations */
+{animation_css}
+
+/* Custom CSS */
+{custom_css}
 """
     
     # Generate manifest.json
