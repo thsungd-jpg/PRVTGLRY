@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Image, Music, Layers, Trash2 } from 'lucide-react';
+import { Image, Music, Layers, Trash2, Video, Layout } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -12,6 +12,7 @@ const API = `${BACKEND_URL}/api`;
 export default function AssetPanel({ config, updateConfig, presets, onLoadPreset, onDeletePreset }) {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingAudio, setUploadingAudio] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
 
   const handleImageUpload = async (event, type = 'background') => {
     const file = event.target.files?.[0];
@@ -76,6 +77,35 @@ export default function AssetPanel({ config, updateConfig, presets, onLoadPreset
     }
   };
 
+  const handleVideoUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      setUploadingVideo(true);
+      const response = await axios.post(`${API}/upload/video`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      const videoData = {
+        url: response.data.url,
+        name: response.data.name,
+        title: file.name.replace(/\.[^/.]+$/, '')
+      };
+
+      updateConfig('video_tracks', [...(config.video_tracks || []), videoData]);
+      toast.success('Video uploaded!');
+    } catch (error) {
+      toast.error('Failed to upload video');
+      console.error(error);
+    } finally {
+      setUploadingVideo(false);
+    }
+  };
+
   const removeImage = (index, type) => {
     const key = type === 'background' ? 'background_images' : 'gallery_images';
     const updated = config[key].filter((_, i) => i !== index);
@@ -89,10 +119,16 @@ export default function AssetPanel({ config, updateConfig, presets, onLoadPreset
     toast.success('Audio removed');
   };
 
+  const removeVideo = (index) => {
+    const updated = (config.video_tracks || []).filter((_, i) => i !== index);
+    updateConfig('video_tracks', updated);
+    toast.success('Video removed');
+  };
+
   return (
     <ScrollArea className="flex-1">
       <Tabs defaultValue="presets" className="w-full">
-        <TabsList className="w-full grid grid-cols-4 gap-1 p-1 bg-background/50">
+        <TabsList className="w-full grid grid-cols-5 gap-1 p-1 bg-background/50">
           <TabsTrigger value="presets" className="text-xs" data-testid="presets-tab">
             <Layers className="w-3 h-3" />
           </TabsTrigger>
@@ -101,6 +137,9 @@ export default function AssetPanel({ config, updateConfig, presets, onLoadPreset
           </TabsTrigger>
           <TabsTrigger value="gallery" className="text-xs" data-testid="gallery-tab">
             <Image className="w-3 h-3" />
+          </TabsTrigger>
+          <TabsTrigger value="video" className="text-xs" data-testid="video-tab">
+            <Video className="w-3 h-3" />
           </TabsTrigger>
           <TabsTrigger value="audio" className="text-xs" data-testid="audio-tab">
             <Music className="w-3 h-3" />
@@ -221,6 +260,48 @@ export default function AssetPanel({ config, updateConfig, presets, onLoadPreset
                     variant="ghost"
                     onClick={() => removeImage(idx, 'gallery')}
                     data-testid={`remove-gallery-${idx}`}
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="video" className="p-3">
+          <input
+            type="file"
+            accept="video/*"
+            onChange={handleVideoUpload}
+            className="hidden"
+            id="video-upload"
+          />
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-full mb-3"
+            onClick={() => document.getElementById('video-upload').click()}
+            disabled={uploadingVideo}
+            data-testid="upload-video-btn"
+          >
+            {uploadingVideo ? 'Uploading...' : 'Add Video'}
+          </Button>
+
+          <div className="space-y-2">
+            {(config.video_tracks || []).map((video, idx) => (
+              <div key={idx} className="asset-card" data-testid={`video-track-${idx}`}>
+                <div className="flex gap-2">
+                  <Video className="w-8 h-8 text-primary flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium truncate">{video.title}</p>
+                    <p className="text-xs text-muted-foreground truncate">{video.name}</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => removeVideo(idx)}
+                    data-testid={`remove-video-${idx}`}
                   >
                     <Trash2 className="w-3 h-3" />
                   </Button>
