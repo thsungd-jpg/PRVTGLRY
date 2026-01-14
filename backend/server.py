@@ -48,6 +48,7 @@ class PWAConfig(BaseModel):
     animations: List[Dict[str, Any]] = Field(default_factory=list)
     custom_css: str = ""
     layout: Dict[str, Any] = Field(default_factory=dict)
+    page_transition: Dict[str, Any] = Field(default_factory=dict)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
