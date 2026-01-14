@@ -164,6 +164,9 @@ function generatePreviewHTML(config) {
           background: rgba(255, 255, 255, 0.05);
           padding: 1rem;
         }
+
+        /* Custom CSS */
+        ${customCSS}
       </style>
     </head>
     <body>
