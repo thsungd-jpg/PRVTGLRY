@@ -258,6 +258,18 @@ class PWABuilderAPITester:
                     print(f"   ✅ {file} generated")
                 else:
                     print(f"   ❌ {file} missing")
+            
+            # Check if animations and custom CSS are included in App.css
+            app_css = files.get('src/App.css', '')
+            if 'slideInUp' in app_css and '@keyframes' in app_css:
+                print(f"   ✅ Animations included in CSS")
+            else:
+                print(f"   ❌ Animations missing from CSS")
+                
+            if '.custom-header' in app_css and '.custom-button' in app_css:
+                print(f"   ✅ Custom CSS included")
+            else:
+                print(f"   ❌ Custom CSS missing")
         
         return success
 
