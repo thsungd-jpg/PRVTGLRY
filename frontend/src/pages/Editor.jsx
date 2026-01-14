@@ -217,6 +217,16 @@ export default function Editor() {
           <div className="flex gap-2">
             <Button
               size="sm"
+              variant={viewMode === 'interactive' ? 'default' : 'ghost'}
+              onClick={() => setViewMode(viewMode === 'preview' ? 'interactive' : 'preview')}
+              data-testid="toggle-interactive-btn"
+            >
+              <Move className="w-4 h-4 mr-1" />
+              {viewMode === 'interactive' ? 'Interactive' : 'Preview'}
+            </Button>
+            
+            <Button
+              size="sm"
               variant="ghost"
               onClick={refreshPreview}
               data-testid="refresh-preview-btn"
