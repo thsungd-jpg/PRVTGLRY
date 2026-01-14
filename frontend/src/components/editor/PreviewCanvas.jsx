@@ -382,6 +382,38 @@ function generatePreviewHTML(config) {
             btn.classList.add('active');
           });
         });
+
+        // Video playlist
+        ${videoTracks.length > 1 ? `
+          const videos = ${JSON.stringify(videoTracks)};
+          function playVideo(index) {
+            const videoElement = document.getElementById('main-video');
+            const titleElement = document.getElementById('current-video-title');
+            videoElement.src = videos[index].url;
+            titleElement.textContent = videos[index].title;
+            videoElement.play();
+            
+            document.querySelectorAll('.video-player .playlist-item').forEach((item, idx) => {
+              item.classList.toggle('active', idx === index);
+            });
+          }
+        ` : ''}
+
+        // Audio playlist
+        ${audioTracks.length > 1 ? `
+          const audios = ${JSON.stringify(audioTracks)};
+          function playAudio(index) {
+            const audioElement = document.getElementById('main-audio');
+            const titleElement = document.getElementById('current-audio-title');
+            audioElement.src = audios[index].url;
+            titleElement.textContent = audios[index].title;
+            audioElement.play();
+            
+            document.querySelectorAll('.video-player .playlist-item').forEach((item, idx) => {
+              item.classList.toggle('active', idx === index);
+            });
+          }
+        ` : ''}
       </script>
     </body>
     </html>
