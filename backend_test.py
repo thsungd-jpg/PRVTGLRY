@@ -76,7 +76,18 @@ class PWABuilderAPITester:
             "audio_tracks": [],
             "pages": [{"id": "home", "title": "Home"}],
             "transitions": {"duration": 7000, "fadeTime": 3500},
-            "fx_settings": {"blur": False, "whiteTint": False}
+            "fx_settings": {"blur": False, "whiteTint": False},
+            "animations": [
+                {
+                    "id": 1234567890,
+                    "name": "fadeIn",
+                    "keyframes": "0% { opacity: 0; }\n100% { opacity: 1; }",
+                    "duration": 1000,
+                    "timing": "ease",
+                    "iteration": "infinite"
+                }
+            ],
+            "custom_css": ".test-class { color: red; }\n#test-id { background: blue; }"
         }
         
         success, response = self.run_test(
