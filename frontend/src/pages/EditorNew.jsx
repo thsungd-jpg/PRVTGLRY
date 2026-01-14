@@ -568,20 +568,26 @@ export default function EditorNew() {
         <div className="editor-canvas cyber-grid">
           <div className="canvas-workspace">
             {viewMode === 'interactive' ? (
-              <InteractiveCanvas config={config} updateConfig={updateConfig} />
+              <div className="w-full h-full p-4">
+                <InteractiveCanvas config={config} updateConfig={updateConfig} />
+              </div>
             ) : (
-              <div className="w-full h-full flex items-center justify-center">
+              <div className="w-full h-full flex items-center justify-center p-4">
                 <div
                   className="glass"
                   style={{
-                    width: selectedDevice === 'mobile' ? 375 : selectedDevice === 'tablet' ? 768 : '90%',
-                    height: '90%',
+                    width: selectedDevice === 'mobile' ? 'min(375px, 90%)' : selectedDevice === 'tablet' ? 'min(768px, 85%)' : '90%',
+                    height: selectedDevice === 'mobile' ? 'min(667px, 85%)' : selectedDevice === 'tablet' ? 'min(1024px, 85%)' : '85%',
                     borderRadius: 12,
-                    padding: 20,
-                    maxWidth: '100%'
+                    padding: selectedDevice === 'mobile' ? 12 : 20,
+                    maxWidth: '100%',
+                    maxHeight: '100%',
+                    overflow: 'hidden'
                   }}
                 >
-                  <PreviewCanvas key={previewKey} config={config} />
+                  <div style={{ width: '100%', height: '100%', overflow: 'auto' }}>
+                    <PreviewCanvas key={previewKey} config={config} />
+                  </div>
                 </div>
               </div>
             )}
