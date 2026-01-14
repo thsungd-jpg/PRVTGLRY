@@ -175,6 +175,11 @@ export default function Editor() {
     toast.success('Preview refreshed!');
   };
 
+  const handleApplyTemplate = (layout) => {
+    updateConfig('layout', layout);
+    setPreviewKey(prev => prev + 1);
+  };
+
   return (
     <div className="editor-layout">
       {/* Left Panel - Assets & Presets */}
