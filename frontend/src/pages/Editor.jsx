@@ -35,6 +35,10 @@ const defaultConfig = {
   audio_tracks: [],
   video_tracks: [],
   pages: [{ id: 'home', title: 'Home' }],
+  page_transition: {
+    type: 'fade',
+    duration: 500
+  },
   transitions: {
     duration: 7000,
     fadeTime: 3500
