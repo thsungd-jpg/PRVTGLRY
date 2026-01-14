@@ -29,6 +29,7 @@ const defaultConfig = {
   background_blend_list: [],
   gallery_images: [],
   audio_tracks: [],
+  video_tracks: [],
   pages: [{ id: 'home', title: 'Home' }],
   transitions: {
     duration: 7000,
@@ -39,7 +40,13 @@ const defaultConfig = {
     whiteTint: false
   },
   animations: [],
-  custom_css: ''
+  custom_css: '',
+  layout: {
+    snapEnabled: true,
+    snapGrid: 10,
+    autoSpacing: true,
+    elements: []
+  }
 };
 
 export default function Editor() {
