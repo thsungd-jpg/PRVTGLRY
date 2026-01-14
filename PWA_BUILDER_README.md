@@ -173,8 +173,8 @@ The editor follows the "Sun God Eclipse" design system:
 
 The app is already running in the development environment:
 
-- **Frontend**: https://pwa-studio.preview.emergentagent.com
-- **Backend API**: https://pwa-studio.preview.emergentagent.com/api
+- **Frontend**: https://pwaforge.preview.emergentagent.com
+- **Backend API**: https://pwaforge.preview.emergentagent.com/api
 
 To restart services:
 ```bash
