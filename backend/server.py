@@ -313,10 +313,52 @@ function App() {{
       
       <main className="content">
         <h2>Welcome to {{app_name}}</h2>
+        
+        {{videoTracks.length > 0 && (
+          <div className="video-player">
+            <h3>Videos</h3>
+            {{videoTracks.map((video, idx) => (
+              <div key={{idx}} style={{{{ marginBottom: '2rem' }}}}>
+                <video controls style={{{{ width: '100%', maxWidth: '800px', borderRadius: '8px' }}}}>
+                  <source src={{video.url}} type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video>
+                <p style={{{{ textAlign: 'center', marginTop: '0.5rem' }}}}>{video.title}</p>
+              </div>
+            ))}}
+          </div>
+        )}}
+        
         {{galleryImages.length > 0 && (
           <div className="gallery">
             {{galleryImages.map((img, idx) => (
               <img key={{idx}} src={{img.url}} alt={{img.name || `Image ${{idx + 1}}`}} />
+            ))}}
+          </div>
+        )}}
+        
+        {{layoutElements.length > 0 && (
+          <div style={{{{ position: 'relative', minHeight: '600px', marginTop: '2rem', border: '1px dashed rgba(255,255,255,0.2)', borderRadius: '8px' }}}}>
+            {{layoutElements.map((el, idx) => (
+              <div 
+                key={{idx}}
+                style={{{{
+                  position: 'absolute',
+                  left: `${{el.x}}px`,
+                  top: `${{el.y}}px`,
+                  width: `${{el.width}}px`,
+                  height: `${{el.height}}px`,
+                  transform: `rotate(${{el.rotation}}deg)`,
+                  zIndex: el.zIndex,
+                  border: '2px solid rgba(245,158,11,0.5)',
+                  background: 'rgba(255,255,255,0.05)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}}}
+              >
+                {{el.type}}
+              </div>
             ))}}
           </div>
         )}}
