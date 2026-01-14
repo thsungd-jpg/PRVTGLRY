@@ -269,6 +269,8 @@ function App() {{
   
   const backgroundImages = {json.dumps(config.get('background_images', []))};
   const galleryImages = {json.dumps(config.get('gallery_images', []))};
+  const videoTracks = {json.dumps(video_tracks)};
+  const layoutElements = {json.dumps(layout_elements)};
   const pages = {json.dumps(config.get('pages', [{'id': 'home', 'title': 'Home'}]))};
   
   useEffect(() => {{
