@@ -141,7 +141,7 @@ function generatePreviewHTML(config) {
           border-radius: 4px;
           cursor: pointer;
           font-size: 0.9rem;
-          transition: background 0.3s ease, border-color 0.3s ease;
+          transition: all 0.3s ease;
         }
 
         .nav-links button:hover,
@@ -162,6 +162,51 @@ function generatePreviewHTML(config) {
           font-size: 2.5rem;
           margin-bottom: 2rem;
           text-align: center;
+        }
+
+        .video-player {
+          margin-top: 2rem;
+          text-align: center;
+        }
+
+        .video-player h3 {
+          margin-bottom: 1.5rem;
+          font-size: 1.5rem;
+        }
+
+        .video-player video {
+          width: 100%;
+          max-width: 800px;
+          border-radius: 8px;
+          background: rgba(0, 0, 0, 0.5);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+          margin-bottom: 1rem;
+        }
+
+        .playlist-container {
+          max-width: 800px;
+          margin: 2rem auto;
+          background: rgba(0, 0, 0, 0.3);
+          border-radius: 8px;
+          padding: 1rem;
+        }
+
+        .playlist-item {
+          padding: 0.75rem;
+          margin-bottom: 0.5rem;
+          background: rgba(255, 255, 255, 0.05);
+          border-radius: 4px;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+
+        .playlist-item:hover {
+          background: rgba(255, 255, 255, 0.1);
+        }
+
+        .playlist-item.active {
+          background: rgba(${parseInt(config.icon_color.slice(1, 3), 16)}, ${parseInt(config.icon_color.slice(3, 5), 16)}, ${parseInt(config.icon_color.slice(5, 7), 16)}, 0.2);
+          border-left: 3px solid ${config.icon_color};
         }
 
         .gallery {
