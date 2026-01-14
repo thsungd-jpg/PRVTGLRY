@@ -271,10 +271,14 @@ export default function Editor() {
       <div className="editor-panel border-l" data-testid="properties-panel">
         <Tabs defaultValue="properties" className="h-full flex flex-col">
           <div className="p-3 border-b border-white/10">
-            <TabsList className="w-full grid grid-cols-3">
+            <TabsList className="w-full grid grid-cols-4">
               <TabsTrigger value="properties" className="text-xs" data-testid="properties-tab">
                 <Settings className="w-3 h-3 mr-1" />
                 Properties
+              </TabsTrigger>
+              <TabsTrigger value="templates" className="text-xs" data-testid="templates-tab">
+                <LayoutTemplate className="w-3 h-3 mr-1" />
+                Templates
               </TabsTrigger>
               <TabsTrigger value="layout" className="text-xs" data-testid="layout-tab">
                 <Move className="w-3 h-3 mr-1" />
@@ -289,6 +293,10 @@ export default function Editor() {
 
           <TabsContent value="properties" className="flex-1 mt-0">
             <PropertiesPanel config={config} updateConfig={updateConfig} />
+          </TabsContent>
+
+          <TabsContent value="templates" className="flex-1 mt-0">
+            <TemplatesPanel onApplyTemplate={handleApplyTemplate} />
           </TabsContent>
 
           <TabsContent value="layout" className="flex-1 mt-0">
