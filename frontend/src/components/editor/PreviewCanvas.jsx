@@ -16,17 +16,19 @@ export default function PreviewCanvas({ config }) {
   }, [config]);
 
   return (
-    <div className="w-full h-full flex items-center justify-center p-8">
-      <div className="device-frame w-full max-w-6xl h-[calc(100vh-180px)]">
-        <iframe
-          ref={iframeRef}
-          className="preview-frame"
-          title="PWA Preview"
-          sandbox="allow-scripts allow-same-origin"
-          data-testid="preview-iframe"
-        />
-      </div>
-    </div>
+    <iframe
+      ref={iframeRef}
+      style={{
+        width: '100%',
+        height: '100%',
+        border: 'none',
+        background: 'white',
+        borderRadius: '8px'
+      }}
+      title="PWA Preview"
+      sandbox="allow-scripts allow-same-origin"
+      data-testid="preview-iframe"
+    />
   );
 }
 
