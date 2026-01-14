@@ -168,6 +168,21 @@ async def upload_audio(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.post("/upload/video")
+async def upload_video(file: UploadFile = File(...)):
+    try:
+        contents = await file.read()
+        base64_data = base64.b64encode(contents).decode('utf-8')
+        mime_type = file.content_type or 'video/mp4'
+        
+        return {
+            "url": f"data:{mime_type};base64,{base64_data}",
+            "name": file.filename,
+            "type": mime_type
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Generate PWA endpoint
 @api_router.post("/generate-pwa")
 async def generate_pwa(config: Dict[str, Any]):
