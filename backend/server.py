@@ -206,6 +206,8 @@ def generate_pwa_files(config: Dict[str, Any]) -> Dict[str, str]:
     bg_color = config.get('background_color', '#000000')
     animations = config.get('animations', [])
     custom_css = config.get('custom_css', '')
+    video_tracks = config.get('video_tracks', [])
+    layout_elements = config.get('layout', {}).get('elements', [])
     
     # Generate animation CSS
     animation_css = '\n'.join([
