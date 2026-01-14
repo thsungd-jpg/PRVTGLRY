@@ -229,7 +229,7 @@ class PWABuilderAPITester:
         return success
 
     def test_generate_pwa(self):
-        """Test PWA generation with animations and custom CSS"""
+        """Test PWA generation with animations, custom CSS, video tracks, and layout elements"""
         test_config = {
             "app_name": "Generated PWA",
             "icon_color": "#2196F3",
@@ -239,6 +239,9 @@ class PWABuilderAPITester:
                 {"url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "name": "test.png"}
             ],
             "gallery_images": [],
+            "video_tracks": [
+                {"url": "data:video/mp4;base64,AAAAIGZ0eXBpc29t", "name": "test_video.mp4", "title": "Test Video"}
+            ],
             "pages": [{"id": "home", "title": "Home"}],
             "transitions": {"duration": 7000, "fadeTime": 3500},
             "fx_settings": {"blur": False, "whiteTint": False},
@@ -260,11 +263,21 @@ class PWABuilderAPITester:
                     "iteration": "infinite"
                 }
             ],
-            "custom_css": ".custom-header { font-size: 2rem; color: #FF6B6B; }\n.custom-button { background: linear-gradient(45deg, #FF6B6B, #4ECDC4); }"
+            "custom_css": ".custom-header { font-size: 2rem; color: #FF6B6B; }\n.custom-button { background: linear-gradient(45deg, #FF6B6B, #4ECDC4); }",
+            "layout": {
+                "snapEnabled": True,
+                "snapGrid": 20,
+                "autoSpacing": True,
+                "elements": [
+                    {"id": 1, "type": "image", "x": 100, "y": 100, "width": 300, "height": 200, "rotation": 0, "zIndex": 1},
+                    {"id": 2, "type": "video", "x": 450, "y": 150, "width": 640, "height": 360, "rotation": 5, "zIndex": 2},
+                    {"id": 3, "type": "text", "x": 200, "y": 400, "width": 200, "height": 100, "rotation": -10, "zIndex": 3}
+                ]
+            }
         }
         
         success, response = self.run_test(
-            "Generate PWA",
+            "Generate PWA with Video and Layout",
             "POST",
             "generate-pwa",
             200,
@@ -292,6 +305,19 @@ class PWABuilderAPITester:
                 print(f"   ✅ Custom CSS included")
             else:
                 print(f"   ❌ Custom CSS missing")
+            
+            # Check if video tracks are included in App.js
+            app_js = files.get('src/App.js', '')
+            if 'videoTracks' in app_js and 'Test Video' in app_js:
+                print(f"   ✅ Video tracks included in App.js")
+            else:
+                print(f"   ❌ Video tracks missing from App.js")
+            
+            # Check if layout elements are included
+            if 'layoutElements' in app_js and 'position: \'absolute\'' in app_js:
+                print(f"   ✅ Layout elements included in App.js")
+            else:
+                print(f"   ❌ Layout elements missing from App.js")
         
         return success
 
