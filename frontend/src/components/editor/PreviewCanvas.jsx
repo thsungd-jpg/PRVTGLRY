@@ -87,6 +87,9 @@ function generatePreviewHTML(config) {
         /* Custom Animations */
         ${animationCSS}
 
+        /* Glow Effects */
+        ${glowCSS}
+
         .background-container {
           position: fixed;
           top: 0;
