@@ -289,14 +289,45 @@ function generatePreviewHTML(config) {
         
         ${videoTracks.length > 0 ? `
           <div class="video-player">
-            <h3 style="margin-bottom: 1rem;">Videos</h3>
-            ${videoTracks.map((video, idx) => `
-              <video controls key="${idx}" style="margin-bottom: 1rem;">
-                <source src="${video.url}" type="video/mp4">
-                Your browser does not support the video tag.
-              </video>
-              <p style="margin-bottom: 2rem; text-align: center; font-size: 0.9rem;">${video.title}</p>
-            `).join('')}
+            <h3>Videos</h3>
+            <video id="main-video" controls>
+              <source src="${videoTracks[0].url}" type="video/mp4">
+              Your browser does not support the video tag.
+            </video>
+            <p id="current-video-title">${videoTracks[0].title}</p>
+            
+            ${videoTracks.length > 1 ? `
+              <div class="playlist-container">
+                <h4 style="margin-bottom: 1rem; color: ${config.icon_color};">Playlist</h4>
+                ${videoTracks.map((video, idx) => `
+                  <div class="playlist-item ${idx === 0 ? 'active' : ''}" onclick="playVideo(${idx})">
+                    <strong>${idx + 1}.</strong> ${video.title}
+                  </div>
+                `).join('')}
+              </div>
+            ` : ''}
+          </div>
+        ` : ''}
+
+        ${audioTracks.length > 0 ? `
+          <div class="video-player">
+            <h3>Audio</h3>
+            <audio id="main-audio" controls style="width: 100%; max-width: 800px;">
+              <source src="${audioTracks[0].url}" type="audio/mpeg">
+              Your browser does not support the audio tag.
+            </audio>
+            <p id="current-audio-title">${audioTracks[0].title}</p>
+            
+            ${audioTracks.length > 1 ? `
+              <div class="playlist-container">
+                <h4 style="margin-bottom: 1rem; color: ${config.icon_color};">Playlist</h4>
+                ${audioTracks.map((audio, idx) => `
+                  <div class="playlist-item ${idx === 0 ? 'active' : ''}" onclick="playAudio(${idx})">
+                    <strong>${idx + 1}.</strong> ${audio.title}
+                  </div>
+                `).join('')}
+              </div>
+            ` : ''}
           </div>
         ` : ''}
         
