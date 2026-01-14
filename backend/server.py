@@ -41,11 +41,13 @@ class PWAConfig(BaseModel):
     background_blend_list: List[str] = Field(default_factory=list)
     gallery_images: List[Dict[str, Any]] = Field(default_factory=list)
     audio_tracks: List[Dict[str, Any]] = Field(default_factory=list)
+    video_tracks: List[Dict[str, Any]] = Field(default_factory=list)
     pages: List[Dict[str, str]] = Field(default_factory=list)
     transitions: Dict[str, Any] = Field(default_factory=dict)
     fx_settings: Dict[str, Any] = Field(default_factory=dict)
     animations: List[Dict[str, Any]] = Field(default_factory=list)
     custom_css: str = ""
+    layout: Dict[str, Any] = Field(default_factory=dict)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
