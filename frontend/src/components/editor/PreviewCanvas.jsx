@@ -241,13 +241,16 @@ function generatePreviewHTML(config) {
         /* Layout Elements */
         .layout-element {
           position: absolute;
-          border: 2px solid rgba(245, 158, 11, 0.3);
+          border: 2px solid rgba(${parseInt(config.icon_color.slice(1, 3), 16)}, ${parseInt(config.icon_color.slice(3, 5), 16)}, ${parseInt(config.icon_color.slice(5, 7), 16)}, 0.3);
           background: rgba(255, 255, 255, 0.05);
           display: flex;
           align-items: center;
           justify-content: center;
           font-size: 0.875rem;
           color: rgba(255, 255, 255, 0.7);
+          border-radius: 4px;
+          padding: 0.5rem;
+          text-align: center;
         }
 
         /* Custom CSS */
