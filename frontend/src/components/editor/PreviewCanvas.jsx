@@ -34,6 +34,18 @@ function generatePreviewHTML(config) {
   const bgImages = config.background_images || [];
   const galleryImages = config.gallery_images || [];
   const pages = config.pages || [{ id: 'home', title: 'Home' }];
+  const animations = config.animations || [];
+  const customCSS = config.custom_css || '';
+
+  // Generate animation keyframes
+  const animationCSS = animations.map(anim => `
+    @keyframes ${anim.name} {
+      ${anim.keyframes}
+    }
+    .anim-${anim.name} {
+      animation: ${anim.name} ${anim.duration}ms ${anim.timing} ${anim.iteration};
+    }
+  `).join('\n');
 
   return `
     <!DOCTYPE html>
@@ -56,6 +68,9 @@ function generatePreviewHTML(config) {
           min-height: 100vh;
           overflow-x: hidden;
         }
+
+        /* Custom Animations */
+        ${animationCSS}
 
         .background-container {
           position: fixed;
