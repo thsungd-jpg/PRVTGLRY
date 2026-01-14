@@ -281,7 +281,11 @@ export default function Editor() {
         </div>
         
         <DevicePreview selectedDevice={selectedDevice} onDeviceChange={setSelectedDevice}>
-          <PreviewCanvas key={previewKey} config={config} />
+          {viewMode === 'interactive' ? (
+            <InteractiveCanvas config={config} updateConfig={updateConfig} />
+          ) : (
+            <PreviewCanvas key={previewKey} config={config} />
+          )}
         </DevicePreview>
       </div>
 
