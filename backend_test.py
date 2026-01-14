@@ -205,6 +205,28 @@ class PWABuilderAPITester:
             print(f"   URL length: {len(response.get('url', ''))}")
         
         return success
+    def test_video_upload(self):
+        """Test video upload functionality"""
+        # Create a simple test video file (minimal MP4 header)
+        video_data = b'\x00\x00\x00\x20ftypmp42' + b'\x00' * 100  # Simple MP4 header + data
+        video_bytes = io.BytesIO(video_data)
+        
+        files = {'file': ('test_video.mp4', video_bytes, 'video/mp4')}
+        
+        success, response = self.run_test(
+            "Video Upload",
+            "POST",
+            "upload/video",
+            200,
+            files=files
+        )
+        
+        if success:
+            print(f"   Video uploaded: {response.get('name', 'Unknown')}")
+            print(f"   URL length: {len(response.get('url', ''))}")
+            print(f"   MIME type: {response.get('type', 'Unknown')}")
+        
+        return success
 
     def test_generate_pwa(self):
         """Test PWA generation with animations and custom CSS"""
