@@ -292,29 +292,41 @@ export default function Editor() {
       {/* Right Panel - Properties & Advanced */}
       <div className="editor-panel border-l" data-testid="properties-panel">
         <Tabs defaultValue="properties" className="h-full flex flex-col">
-          <div className="p-3 border-b border-white/10">
-            <TabsList className="w-full grid grid-cols-4">
-              <TabsTrigger value="properties" className="text-xs" data-testid="properties-tab">
-                <Settings className="w-3 h-3 mr-1" />
-                Properties
+          <div className="p-2 border-b border-white/10">
+            <TabsList className="w-full grid grid-cols-3 gap-1">
+              <TabsTrigger value="properties" className="text-xs px-1" data-testid="properties-tab">
+                <Settings className="w-3 h-3" />
               </TabsTrigger>
-              <TabsTrigger value="templates" className="text-xs" data-testid="templates-tab">
-                <LayoutTemplate className="w-3 h-3 mr-1" />
-                Templates
+              <TabsTrigger value="pages" className="text-xs px-1" data-testid="pages-tab">
+                <FileText className="w-3 h-3" />
               </TabsTrigger>
-              <TabsTrigger value="layout" className="text-xs" data-testid="layout-tab">
-                <Move className="w-3 h-3 mr-1" />
-                Layout
+              <TabsTrigger value="buttons" className="text-xs px-1" data-testid="buttons-tab">
+                <MousePointer2 className="w-3 h-3" />
               </TabsTrigger>
-              <TabsTrigger value="advanced" className="text-xs" data-testid="advanced-tab">
-                <Sliders className="w-3 h-3 mr-1" />
-                Advanced
+            </TabsList>
+            <TabsList className="w-full grid grid-cols-3 gap-1 mt-1">
+              <TabsTrigger value="templates" className="text-xs px-1" data-testid="templates-tab">
+                <LayoutTemplate className="w-3 h-3" />
+              </TabsTrigger>
+              <TabsTrigger value="layout" className="text-xs px-1" data-testid="layout-tab">
+                <Move className="w-3 h-3" />
+              </TabsTrigger>
+              <TabsTrigger value="advanced" className="text-xs px-1" data-testid="advanced-tab">
+                <Sliders className="w-3 h-3" />
               </TabsTrigger>
             </TabsList>
           </div>
 
           <TabsContent value="properties" className="flex-1 mt-0">
             <PropertiesPanel config={config} updateConfig={updateConfig} />
+          </TabsContent>
+
+          <TabsContent value="pages" className="flex-1 mt-0">
+            <PagesPanel config={config} updateConfig={updateConfig} />
+          </TabsContent>
+
+          <TabsContent value="buttons" className="flex-1 mt-0">
+            <ButtonAnimationsPanel config={config} updateConfig={updateConfig} />
           </TabsContent>
 
           <TabsContent value="templates" className="flex-1 mt-0">
