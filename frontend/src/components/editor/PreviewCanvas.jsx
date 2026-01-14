@@ -241,6 +241,15 @@ function generatePreviewHTML(config) {
           background: rgba(0, 0, 0, 0.5);
         }
 
+        .layout-container {
+          position: relative;
+          min-height: 600px;
+          margin-top: 2rem;
+          border: 1px dashed rgba(255, 255, 255, 0.2);
+          border-radius: 8px;
+          padding: 2rem;
+        }
+
         /* Layout Elements */
         .layout-element {
           position: absolute;
