@@ -340,7 +340,7 @@ function generatePreviewHTML(config) {
         ` : ''}
         
         ${layoutElements.length > 0 ? `
-          <div style="position: relative; min-height: 600px; margin-top: 2rem; border: 1px dashed rgba(255, 255, 255, 0.2); border-radius: 8px;">
+          <div class="layout-container">
             ${layoutElements.map(el => `
               <div 
                 class="layout-element" 
@@ -349,8 +349,8 @@ function generatePreviewHTML(config) {
                   top: ${el.y}px; 
                   width: ${el.width}px; 
                   height: ${el.height}px;
-                  transform: rotate(${el.rotation}deg);
-                  z-index: ${el.zIndex};
+                  transform: rotate(${el.rotation || 0}deg);
+                  z-index: ${el.zIndex || 0};
                 "
               >
                 ${el.type}
