@@ -8,6 +8,7 @@ import axios from 'axios';
 import AssetPanel from '@/components/editor/AssetPanel';
 import PropertiesPanel from '@/components/editor/PropertiesPanel';
 import AdvancedPanel from '@/components/editor/AdvancedPanel';
+import LayoutPanel from '@/components/editor/LayoutPanel';
 import PreviewCanvas from '@/components/editor/PreviewCanvas';
 import DevicePreview from '@/components/editor/DevicePreview';
 import PresetDialog from '@/components/editor/PresetDialog';
