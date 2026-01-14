@@ -222,10 +222,44 @@ function generatePreviewHTML(config) {
 
       <main class="content">
         <h2>Welcome to ${config.app_name}</h2>
+        
+        ${videoTracks.length > 0 ? `
+          <div class="video-player">
+            <h3 style="margin-bottom: 1rem;">Videos</h3>
+            ${videoTracks.map((video, idx) => `
+              <video controls key="${idx}" style="margin-bottom: 1rem;">
+                <source src="${video.url}" type="video/mp4">
+                Your browser does not support the video tag.
+              </video>
+              <p style="margin-bottom: 2rem; text-align: center; font-size: 0.9rem;">${video.title}</p>
+            `).join('')}
+          </div>
+        ` : ''}
+        
         ${galleryImages.length > 0 ? `
           <div class="gallery">
             ${galleryImages.map((img, idx) => `
               <img src="${img.url}" alt="${img.name || 'Image ' + (idx + 1)}" />
+            `).join('')}
+          </div>
+        ` : ''}
+        
+        ${layoutElements.length > 0 ? `
+          <div style="position: relative; min-height: 600px; margin-top: 2rem; border: 1px dashed rgba(255, 255, 255, 0.2); border-radius: 8px;">
+            ${layoutElements.map(el => `
+              <div 
+                class="layout-element" 
+                style="
+                  left: ${el.x}px; 
+                  top: ${el.y}px; 
+                  width: ${el.width}px; 
+                  height: ${el.height}px;
+                  transform: rotate(${el.rotation}deg);
+                  z-index: ${el.zIndex};
+                "
+              >
+                ${el.type}
+              </div>
             `).join('')}
           </div>
         ` : ''}
