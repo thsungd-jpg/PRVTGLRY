@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Download, Play, Settings, Layers, Palette, Sparkles, Grid3x3, Monitor, Tablet, Smartphone, Move, Menu, X } from 'lucide-react';
+import { Save, Download, Play, Settings, Layers, Palette, Sparkles, Grid3x3, Monitor, Tablet, Smartphone, Move, Menu, X, Image, Video, Music, FileText, LayoutTemplate } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { toast } from 'sonner';
 import axios from 'axios';
