@@ -320,10 +320,10 @@ function App() {{
             {{videoTracks.map((video, idx) => (
               <div key={{idx}} style={{{{ marginBottom: '2rem' }}}}>
                 <video controls style={{{{ width: '100%', maxWidth: '800px', borderRadius: '8px' }}}}>
-                  <source src={{{video.url}}} type="video/mp4" />
+                  <source src={{video.url}} type="video/mp4" />
                   Your browser does not support the video tag.
                 </video>
-                <p style={{{{ textAlign: 'center', marginTop: '0.5rem' }}}}>{{{video.title}}}</p>
+                <p style={{{{ textAlign: 'center', marginTop: '0.5rem' }}}}>{video.title}</p>
               </div>
             ))}}
           </div>
