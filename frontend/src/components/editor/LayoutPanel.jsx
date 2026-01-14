@@ -53,33 +53,38 @@ export default function LayoutPanel({ config, updateConfig }) {
     const elements = [...layout.elements];
     if (elements.length === 0) return;
 
+    const canvasWidth = 1000;
+    const canvasHeight = 800;
+
     if (direction === 'horizontal') {
       // Distribute horizontally with equal spacing
-      const totalWidth = elements.reduce((sum, el) => sum + el.width, 0);
-      const spacing = (1000 - totalWidth) / (elements.length + 1);
-      let currentX = spacing;
-
       elements.sort((a, b) => a.x - b.x);
+      const totalWidth = elements.reduce((sum, el) => sum + el.width, 0);
+      const availableSpace = canvasWidth - totalWidth;
+      const spacing = layout.autoSpacing ? availableSpace / (elements.length + 1) : 20;
+      
+      let currentX = spacing;
       elements.forEach(el => {
-        el.x = currentX;
+        el.x = Math.round(currentX);
         currentX += el.width + spacing;
       });
     } else if (direction === 'vertical') {
       // Distribute vertically with equal spacing
-      const totalHeight = elements.reduce((sum, el) => sum + el.height, 0);
-      const spacing = (800 - totalHeight) / (elements.length + 1);
-      let currentY = spacing;
-
       elements.sort((a, b) => a.y - b.y);
+      const totalHeight = elements.reduce((sum, el) => sum + el.height, 0);
+      const availableSpace = canvasHeight - totalHeight;
+      const spacing = layout.autoSpacing ? availableSpace / (elements.length + 1) : 20;
+      
+      let currentY = spacing;
       elements.forEach(el => {
-        el.y = currentY;
+        el.y = Math.round(currentY);
         currentY += el.height + spacing;
       });
     } else if (direction === 'center') {
       // Center all elements
       elements.forEach(el => {
-        el.x = (1000 - el.width) / 2;
-        el.y = (800 - el.height) / 2;
+        el.x = Math.round((canvasWidth - el.width) / 2);
+        el.y = Math.round((canvasHeight - el.height) / 2);
       });
     }
 
