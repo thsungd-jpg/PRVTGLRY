@@ -468,6 +468,33 @@ export default App;
   padding: 1rem;
 }}
 
+.video-player {{
+  margin-top: 2rem;
+  text-align: center;
+}}
+
+.video-player h3 {{
+  margin-bottom: 1.5rem;
+  font-size: 1.5rem;
+}}
+
+.video-player video {{
+  width: 100%;
+  max-width: 800px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}}
+
+/* Layout elements */
+.layout-container {{
+  position: relative;
+  min-height: 600px;
+  margin-top: 2rem;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+}}
+
 /* Custom Animations */
 {animation_css}
 
