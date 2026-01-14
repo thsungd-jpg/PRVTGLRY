@@ -207,7 +207,7 @@ class PWABuilderAPITester:
         return success
 
     def test_generate_pwa(self):
-        """Test PWA generation"""
+        """Test PWA generation with animations and custom CSS"""
         test_config = {
             "app_name": "Generated PWA",
             "icon_color": "#2196F3",
@@ -219,7 +219,26 @@ class PWABuilderAPITester:
             "gallery_images": [],
             "pages": [{"id": "home", "title": "Home"}],
             "transitions": {"duration": 7000, "fadeTime": 3500},
-            "fx_settings": {"blur": False, "whiteTint": False}
+            "fx_settings": {"blur": False, "whiteTint": False},
+            "animations": [
+                {
+                    "id": 1234567890,
+                    "name": "slideInUp",
+                    "keyframes": "0% { transform: translateY(50px); opacity: 0; }\n100% { transform: translateY(0); opacity: 1; }",
+                    "duration": 800,
+                    "timing": "ease-out",
+                    "iteration": "1"
+                },
+                {
+                    "id": 1234567891,
+                    "name": "bounce",
+                    "keyframes": "0%, 100% { transform: translateY(0); }\n50% { transform: translateY(-20px); }",
+                    "duration": 1200,
+                    "timing": "ease-in-out",
+                    "iteration": "infinite"
+                }
+            ],
+            "custom_css": ".custom-header { font-size: 2rem; color: #FF6B6B; }\n.custom-button { background: linear-gradient(45deg, #FF6B6B, #4ECDC4); }"
         }
         
         success, response = self.run_test(
