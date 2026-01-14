@@ -12,19 +12,19 @@
     --card-foreground: 0 0% 98%;
     --popover: 0 0% 6%;
     --popover-foreground: 0 0% 98%;
-    --primary: 38 92% 50%;
+    --primary: 168 100% 50%;
     --primary-foreground: 0 0% 0%;
     --secondary: 240 6% 15%;
     --secondary-foreground: 0 0% 100%;
     --muted: 240 6% 32%;
     --muted-foreground: 240 5% 64%;
-    --accent: 217 91% 60%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 190 100% 50%;
+    --accent-foreground: 0 0% 0%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
     --border: 240 6% 15%;
     --input: 240 6% 15%;
-    --ring: 38 92% 50%;
+    --ring: 168 100% 50%;
     --radius: 0.5rem;
   }
 }
@@ -46,23 +46,16 @@
   }
 }
 
-/* Futuristic scrollbar */
+/* Hide all scrollbars globally */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 0px;
+  height: 0px;
+  display: none;
 }
 
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #F59E0B 0%, #D97706 100%);
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #FBBF24 0%, #F59E0B 100%);
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 /* Smooth transitions */
@@ -74,24 +67,24 @@ button:active {
   transform: scale(0.98);
 }
 
-/* Futuristic glow */
+/* Neon Blue/Green Glow */
 .glow-primary {
-  box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+  box-shadow: 0 0 20px rgba(0, 255, 200, 0.3), 0 0 40px rgba(0, 200, 255, 0.2);
 }
 
 .glow-accent {
-  box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 0 20px rgba(0, 200, 255, 0.3), 0 0 40px rgba(0, 255, 200, 0.2);
 }
 
-/* Cyber grid background */
+/* Cyber grid background - neon blue/green */
 .cyber-grid {
   background-image: 
-    linear-gradient(rgba(245, 158, 11, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(245, 158, 11, 0.03) 1px, transparent 1px);
+    linear-gradient(rgba(0, 255, 200, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 200, 255, 0.03) 1px, transparent 1px);
   background-size: 20px 20px;
 }
 
-/* Animated gradient border */
+/* Animated gradient border - neon */
 .gradient-border {
   position: relative;
   background: hsl(var(--card));
@@ -103,7 +96,7 @@ button:active {
   inset: 0;
   border-radius: inherit;
   padding: 1px;
-  background: linear-gradient(135deg, #F59E0B 0%, #3B82F6 50%, #F59E0B 100%);
+  background: linear-gradient(135deg, #00ffc8 0%, #00c8ff 50%, #00ffc8 100%);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
@@ -120,24 +113,25 @@ button:active {
 .glass {
   background: rgba(10, 10, 10, 0.7);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(0, 255, 200, 0.1);
 }
 
-/* Neon text */
+/* Neon text - blue/green gradient */
 .neon-text {
-  text-shadow: 
-    0 0 5px rgba(245, 158, 11, 0.8),
-    0 0 10px rgba(245, 158, 11, 0.6),
-    0 0 20px rgba(245, 158, 11, 0.4);
+  background: linear-gradient(135deg, #00ffc8 0%, #00c8ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 10px rgba(0, 255, 200, 0.5));
 }
 
 /* Holographic effect */
 .holographic {
   background: linear-gradient(
     135deg,
-    rgba(245, 158, 11, 0.1) 0%,
-    rgba(59, 130, 246, 0.1) 50%,
-    rgba(245, 158, 11, 0.1) 100%
+    rgba(0, 255, 200, 0.1) 0%,
+    rgba(0, 200, 255, 0.1) 50%,
+    rgba(0, 255, 200, 0.1) 100%
   );
   background-size: 200% 200%;
   animation: holographic-shift 4s ease infinite;
@@ -148,13 +142,13 @@ button:active {
   50% { background-position: 100% 50%; }
 }
 
-/* Pulse animation */
+/* Pulse animation - neon */
 @keyframes pulse-glow {
   0%, 100% {
-    box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+    box-shadow: 0 0 20px rgba(0, 255, 200, 0.3);
   }
   50% {
-    box-shadow: 0 0 30px rgba(245, 158, 11, 0.6);
+    box-shadow: 0 0 30px rgba(0, 255, 200, 0.6), 0 0 50px rgba(0, 200, 255, 0.4);
   }
 }
 

@@ -22,7 +22,7 @@ export default function PreviewCanvas({ config }) {
         width: '100%',
         height: '100%',
         border: 'none',
-        background: 'white',
+        background: 'transparent',
         borderRadius: '8px'
       }}
       title="PWA Preview"
@@ -42,6 +42,15 @@ function generatePreviewHTML(config) {
   const customCSS = config.custom_css || '';
   const layoutElements = config.layout?.elements || [];
   const glowEffects = config.glow_effects || {};
+  
+  // Text sections
+  const textSections = config.text_sections || {
+    title: config.app_name || 'My App',
+    header: '',
+    subHeader: '',
+    footer: '',
+    subFooter: ''
+  };
 
   // Generate animation keyframes
   const animationCSS = animations.map(anim => `
@@ -53,13 +62,13 @@ function generatePreviewHTML(config) {
     }
   `).join('\n');
 
-  // Generate glow CSS
+  // Generate glow CSS with neon blue/green gradient
   const glowIntensity = glowEffects.intensity || 20;
   const glowCSS = `
-    ${glowEffects.buttons ? `.nav-links button { box-shadow: 0 0 ${glowIntensity}px currentColor; }` : ''}
-    ${glowEffects.text ? `h1, h2, h3 { text-shadow: 0 0 ${glowIntensity}px currentColor; }` : ''}
-    ${glowEffects.images ? `.gallery img { box-shadow: 0 0 ${glowIntensity}px rgba(255,255,255,0.5); }` : ''}
-    ${glowEffects.video ? `video { box-shadow: 0 0 ${glowIntensity}px rgba(255,255,255,0.5); }` : ''}
+    ${glowEffects.buttons ? `.nav-links button { box-shadow: 0 0 ${glowIntensity}px rgba(0, 255, 200, 0.6), 0 0 ${glowIntensity * 2}px rgba(0, 200, 255, 0.4); }` : ''}
+    ${glowEffects.text ? `h1, h2, h3, .title-text, .header-text { text-shadow: 0 0 ${glowIntensity}px rgba(0, 255, 200, 0.8), 0 0 ${glowIntensity * 2}px rgba(0, 200, 255, 0.6); }` : ''}
+    ${glowEffects.images ? `.gallery img, .layout-element[data-type="image"] { box-shadow: 0 0 ${glowIntensity}px rgba(0, 255, 200, 0.5), 0 0 ${glowIntensity * 2}px rgba(0, 200, 255, 0.3); }` : ''}
+    ${glowEffects.video ? `video, .layout-element[data-type="video"] { box-shadow: 0 0 ${glowIntensity}px rgba(0, 255, 200, 0.5), 0 0 ${glowIntensity * 2}px rgba(0, 200, 255, 0.3); }` : ''}
   `;
 
   return `
@@ -76,18 +85,23 @@ function generatePreviewHTML(config) {
           box-sizing: border-box;
         }
 
+        html, body {
+          overflow: hidden;
+          height: 100%;
+        }
+
         body {
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
           background-color: ${config.background_color};
           color: ${config.text_color};
-          min-height: 100vh;
-          overflow-x: hidden;
+          min-height: 100%;
+          overflow: hidden;
         }
 
         /* Custom Animations */
         ${animationCSS}
 
-        /* Glow Effects */
+        /* Glow Effects - Neon Blue/Green */
         ${glowCSS}
 
         .background-container {
@@ -107,154 +121,123 @@ function generatePreviewHTML(config) {
           background-size: cover;
           background-position: center;
           transition: opacity ${config.transitions?.fadeTime || 3500}ms ease-in-out;
-          mix-blend-mode: ${config.background_blend_mode};
+          mix-blend-mode: ${config.background_blend_mode || 'normal'};
         }
 
         .background-image.fade-out {
           opacity: 0;
         }
 
-        .navbar {
-          position: relative;
-          z-index: 10;
-          padding: 1.5rem 2rem;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          background: rgba(0, 0, 0, 0.4);
-          backdrop-filter: blur(10px);
-        }
-
-        .navbar h1 {
-          font-size: 1.5rem;
-          font-weight: bold;
-          color: ${config.icon_color};
-        }
-
-        .nav-links {
-          display: flex;
-          gap: 1rem;
-        }
-
-        .nav-links button {
-          background: transparent;
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          color: ${config.text_color};
-          padding: 0.5rem 1rem;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 0.9rem;
-          transition: all 0.3s ease;
-        }
-
-        .nav-links button:hover,
-        .nav-links button.active {
-          background: rgba(255, 255, 255, 0.1);
-          border-color: ${config.icon_color};
-        }
-
+        /* Main Content - No Scroll */
         .content {
           position: relative;
           z-index: 5;
-          padding: 3rem 2rem;
-          max-width: 1200px;
-          margin: 0 auto;
+          height: 100vh;
+          width: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 1rem;
+          overflow: hidden;
         }
 
-        .content h2 {
-          font-size: 2.5rem;
-          margin-bottom: 2rem;
+        /* Text Sections */
+        .text-section {
           text-align: center;
+          margin: 0.5rem 0;
         }
 
+        .title-text {
+          font-size: 2rem;
+          font-weight: 900;
+          background: linear-gradient(135deg, #00ffc8 0%, #00c8ff 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          margin-bottom: 0.5rem;
+        }
+
+        .header-text {
+          font-size: 1.25rem;
+          font-weight: 600;
+          color: ${config.text_color};
+          opacity: 0.9;
+        }
+
+        .sub-header-text {
+          font-size: 1rem;
+          color: ${config.text_color};
+          opacity: 0.7;
+        }
+
+        .footer-text {
+          font-size: 0.875rem;
+          color: ${config.text_color};
+          opacity: 0.6;
+          margin-top: auto;
+          padding-top: 1rem;
+        }
+
+        .sub-footer-text {
+          font-size: 0.75rem;
+          color: ${config.text_color};
+          opacity: 0.4;
+        }
+
+        /* Media Elements */
         .video-player {
-          margin-top: 2rem;
+          margin: 1rem 0;
           text-align: center;
-        }
-
-        .video-player h3 {
-          margin-bottom: 1.5rem;
-          font-size: 1.5rem;
         }
 
         .video-player video {
           width: 100%;
-          max-width: 800px;
+          max-width: 600px;
           border-radius: 8px;
           background: rgba(0, 0, 0, 0.5);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-          margin-bottom: 1rem;
+          box-shadow: 0 4px 20px rgba(0, 255, 200, 0.2);
         }
 
-        .playlist-container {
-          max-width: 800px;
-          margin: 2rem auto;
-          background: rgba(0, 0, 0, 0.3);
-          border-radius: 8px;
-          padding: 1rem;
+        .audio-player {
+          margin: 1rem 0;
+          width: 100%;
+          max-width: 600px;
         }
 
-        .playlist-item {
-          padding: 0.75rem;
-          margin-bottom: 0.5rem;
-          background: rgba(255, 255, 255, 0.05);
-          border-radius: 4px;
-          cursor: pointer;
-          transition: background 0.2s;
-        }
-
-        .playlist-item:hover {
-          background: rgba(255, 255, 255, 0.1);
-        }
-
-        .playlist-item.active {
-          background: rgba(${parseInt(config.icon_color.slice(1, 3), 16)}, ${parseInt(config.icon_color.slice(3, 5), 16)}, ${parseInt(config.icon_color.slice(5, 7), 16)}, 0.2);
-          border-left: 3px solid ${config.icon_color};
+        .audio-player audio {
+          width: 100%;
         }
 
         .gallery {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-          gap: 1.5rem;
-          margin-top: 2rem;
+          display: flex;
+          gap: 1rem;
+          flex-wrap: wrap;
+          justify-content: center;
+          margin: 1rem 0;
         }
 
         .gallery img {
-          width: 100%;
-          height: 250px;
+          max-width: 200px;
+          max-height: 150px;
           object-fit: contain;
           border-radius: 8px;
           background: rgba(255, 255, 255, 0.05);
-          padding: 1rem;
-        }
-
-        /* Video Player */
-        .video-player {
-          margin-top: 2rem;
-          max-width: 100%;
-        }
-
-        .video-player video {
-          width: 100%;
-          max-width: 800px;
-          border-radius: 8px;
-          background: rgba(0, 0, 0, 0.5);
-        }
-
-        .layout-container {
-          position: relative;
-          min-height: 600px;
-          margin-top: 2rem;
-          border: 1px dashed rgba(255, 255, 255, 0.2);
-          border-radius: 8px;
-          padding: 2rem;
+          padding: 0.5rem;
         }
 
         /* Layout Elements */
+        .layout-container {
+          position: relative;
+          width: 100%;
+          height: 100%;
+          min-height: 400px;
+        }
+
         .layout-element {
           position: absolute;
-          border: 2px solid rgba(${parseInt(config.icon_color.slice(1, 3), 16)}, ${parseInt(config.icon_color.slice(3, 5), 16)}, ${parseInt(config.icon_color.slice(5, 7), 16)}, 0.3);
-          background: rgba(255, 255, 255, 0.05);
+          border: 2px solid rgba(0, 255, 200, 0.3);
+          background: rgba(0, 200, 255, 0.05);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -263,6 +246,62 @@ function generatePreviewHTML(config) {
           border-radius: 4px;
           padding: 0.5rem;
           text-align: center;
+          backdrop-filter: blur(4px);
+        }
+
+        .layout-element[data-type="title"] {
+          background: transparent;
+          border: none;
+        }
+
+        .layout-element[data-type="title"] span {
+          font-size: 1.5rem;
+          font-weight: 700;
+          background: linear-gradient(135deg, #00ffc8 0%, #00c8ff 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+
+        .layout-element[data-type="header"] span,
+        .layout-element[data-type="subHeader"] span {
+          font-size: 1rem;
+          font-weight: 500;
+        }
+
+        .layout-element[data-type="footer"] span,
+        .layout-element[data-type="subFooter"] span {
+          font-size: 0.75rem;
+          opacity: 0.6;
+        }
+
+        /* Playlist */
+        .playlist-container {
+          max-width: 600px;
+          margin: 1rem auto;
+          background: rgba(0, 0, 0, 0.3);
+          border-radius: 8px;
+          padding: 0.75rem;
+          border: 1px solid rgba(0, 255, 200, 0.2);
+        }
+
+        .playlist-item {
+          padding: 0.5rem;
+          margin-bottom: 0.25rem;
+          background: rgba(255, 255, 255, 0.05);
+          border-radius: 4px;
+          cursor: pointer;
+          transition: background 0.2s;
+          font-size: 0.875rem;
+        }
+
+        .playlist-item:hover {
+          background: rgba(0, 255, 200, 0.1);
+        }
+
+        .playlist-item.active {
+          background: rgba(0, 255, 200, 0.2);
+          border-left: 3px solid #00ffc8;
         }
 
         /* Custom CSS */
@@ -282,91 +321,86 @@ function generatePreviewHTML(config) {
         </div>
       ` : ''}
 
-      <nav class="navbar">
-        <h1>${config.app_name}</h1>
-        <div class="nav-links">
-          ${pages.map((page, idx) => `
-            <button class="${idx === 0 ? 'active' : ''}" data-page="${page.id}">
-              ${page.title}
-            </button>
-          `).join('')}
-        </div>
-      </nav>
-
       <main class="content">
-        <h2>Welcome to ${config.app_name}</h2>
-        
-        ${videoTracks.length > 0 ? `
-          <div class="video-player">
-            <h3>Videos</h3>
-            <video id="main-video" controls>
-              <source src="${videoTracks[0].url}" type="video/mp4">
-              Your browser does not support the video tag.
-            </video>
-            <p id="current-video-title">${videoTracks[0].title}</p>
-            
-            ${videoTracks.length > 1 ? `
-              <div class="playlist-container">
-                <h4 style="margin-bottom: 1rem; color: ${config.icon_color};">Playlist</h4>
-                ${videoTracks.map((video, idx) => `
-                  <div class="playlist-item ${idx === 0 ? 'active' : ''}" onclick="playVideo(${idx})">
-                    <strong>${idx + 1}.</strong> ${video.title}
-                  </div>
-                `).join('')}
-              </div>
-            ` : ''}
-          </div>
-        ` : ''}
-
-        ${audioTracks.length > 0 ? `
-          <div class="video-player">
-            <h3>Audio</h3>
-            <audio id="main-audio" controls style="width: 100%; max-width: 800px;">
-              <source src="${audioTracks[0].url}" type="audio/mpeg">
-              Your browser does not support the audio tag.
-            </audio>
-            <p id="current-audio-title">${audioTracks[0].title}</p>
-            
-            ${audioTracks.length > 1 ? `
-              <div class="playlist-container">
-                <h4 style="margin-bottom: 1rem; color: ${config.icon_color};">Playlist</h4>
-                ${audioTracks.map((audio, idx) => `
-                  <div class="playlist-item ${idx === 0 ? 'active' : ''}" onclick="playAudio(${idx})">
-                    <strong>${idx + 1}.</strong> ${audio.title}
-                  </div>
-                `).join('')}
-              </div>
-            ` : ''}
-          </div>
-        ` : ''}
-        
-        ${galleryImages.length > 0 ? `
-          <div class="gallery">
-            ${galleryImages.map((img, idx) => `
-              <img src="${img.url}" alt="${img.name || 'Image ' + (idx + 1)}" />
-            `).join('')}
-          </div>
-        ` : ''}
-        
         ${layoutElements.length > 0 ? `
           <div class="layout-container">
-            ${layoutElements.map(el => `
-              <div 
-                class="layout-element" 
-                style="
-                  left: ${el.x}px; 
-                  top: ${el.y}px; 
-                  width: ${el.width}px; 
-                  height: ${el.height}px;
-                  transform: rotate(${el.rotation || 0}deg);
-                  z-index: ${el.zIndex || 0};
-                "
-              >
-                ${el.type}
-              </div>
-            `).join('')}
+            ${layoutElements.map(el => {
+              let content = el.label || el.type;
+              if (el.type === 'title') content = textSections.title || config.app_name;
+              if (el.type === 'header') content = textSections.header || 'Header';
+              if (el.type === 'subHeader') content = textSections.subHeader || 'Sub Header';
+              if (el.type === 'footer') content = textSections.footer || 'Footer';
+              if (el.type === 'subFooter') content = textSections.subFooter || 'Sub Footer';
+              
+              return `
+                <div 
+                  class="layout-element" 
+                  data-type="${el.type}"
+                  style="
+                    left: ${el.x}px; 
+                    top: ${el.y}px; 
+                    width: ${el.width}px; 
+                    height: ${el.height}px;
+                    transform: rotate(${el.rotation || 0}deg);
+                    z-index: ${el.zIndex || 0};
+                  "
+                >
+                  <span>${content}</span>
+                </div>
+              `;
+            }).join('')}
           </div>
-        ` : ''}
+        ` : `
+          <!-- Default Layout when no elements -->
+          ${textSections.title ? `<div class="text-section"><div class="title-text">${textSections.title}</div></div>` : ''}
+          ${textSections.header ? `<div class="text-section"><div class="header-text">${textSections.header}</div></div>` : ''}
+          ${textSections.subHeader ? `<div class="text-section"><div class="sub-header-text">${textSections.subHeader}</div></div>` : ''}
+          
+          ${videoTracks.length > 0 ? `
+            <div class="video-player">
+              <video id="main-video" controls>
+                <source src="${videoTracks[0].url}" type="video/mp4">
+              </video>
+              ${videoTracks.length > 1 ? `
+                <div class="playlist-container">
+                  ${videoTracks.map((video, idx) => `
+                    <div class="playlist-item ${idx === 0 ? 'active' : ''}" onclick="playVideo(${idx})">
+                      ${idx + 1}. ${video.title}
+                    </div>
+                  `).join('')}
+                </div>
+              ` : ''}
+            </div>
+          ` : ''}
+
+          ${audioTracks.length > 0 ? `
+            <div class="audio-player">
+              <audio id="main-audio" controls>
+                <source src="${audioTracks[0].url}" type="audio/mpeg">
+              </audio>
+              ${audioTracks.length > 1 ? `
+                <div class="playlist-container">
+                  ${audioTracks.map((audio, idx) => `
+                    <div class="playlist-item ${idx === 0 ? 'active' : ''}" onclick="playAudio(${idx})">
+                      ${idx + 1}. ${audio.title}
+                    </div>
+                  `).join('')}
+                </div>
+              ` : ''}
+            </div>
+          ` : ''}
+          
+          ${galleryImages.length > 0 ? `
+            <div class="gallery">
+              ${galleryImages.map((img, idx) => `
+                <img src="${img.url}" alt="${img.name || 'Image ' + (idx + 1)}" />
+              `).join('')}
+            </div>
+          ` : ''}
+
+          ${textSections.footer ? `<div class="text-section"><div class="footer-text">${textSections.footer}</div></div>` : ''}
+          ${textSections.subFooter ? `<div class="text-section"><div class="sub-footer-text">${textSections.subFooter}</div></div>` : ''}
+        `}
       </main>
 
       <script>
@@ -383,23 +417,12 @@ function generatePreviewHTML(config) {
           }, duration);
         ` : ''}
 
-        // Page navigation
-        const navButtons = document.querySelectorAll('.nav-links button');
-        navButtons.forEach(btn => {
-          btn.addEventListener('click', () => {
-            navButtons.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-          });
-        });
-
         // Video playlist
         ${videoTracks.length > 1 ? `
           const videos = ${JSON.stringify(videoTracks)};
           function playVideo(index) {
             const videoElement = document.getElementById('main-video');
-            const titleElement = document.getElementById('current-video-title');
             videoElement.src = videos[index].url;
-            titleElement.textContent = videos[index].title;
             videoElement.play();
             
             document.querySelectorAll('.video-player .playlist-item').forEach((item, idx) => {
@@ -413,12 +436,10 @@ function generatePreviewHTML(config) {
           const audios = ${JSON.stringify(audioTracks)};
           function playAudio(index) {
             const audioElement = document.getElementById('main-audio');
-            const titleElement = document.getElementById('current-audio-title');
             audioElement.src = audios[index].url;
-            titleElement.textContent = audios[index].title;
             audioElement.play();
             
-            document.querySelectorAll('.video-player .playlist-item').forEach((item, idx) => {
+            document.querySelectorAll('.audio-player .playlist-item').forEach((item, idx) => {
               item.classList.toggle('active', idx === index);
             });
           }
