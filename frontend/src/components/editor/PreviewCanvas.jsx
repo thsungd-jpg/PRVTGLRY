@@ -167,6 +167,31 @@ function generatePreviewHTML(config) {
           padding: 1rem;
         }
 
+        /* Video Player */
+        .video-player {
+          margin-top: 2rem;
+          max-width: 100%;
+        }
+
+        .video-player video {
+          width: 100%;
+          max-width: 800px;
+          border-radius: 8px;
+          background: rgba(0, 0, 0, 0.5);
+        }
+
+        /* Layout Elements */
+        .layout-element {
+          position: absolute;
+          border: 2px solid rgba(245, 158, 11, 0.3);
+          background: rgba(255, 255, 255, 0.05);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 0.875rem;
+          color: rgba(255, 255, 255, 0.7);
+        }
+
         /* Custom CSS */
         ${customCSS}
       </style>
