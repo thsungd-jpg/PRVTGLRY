@@ -3,6 +3,7 @@ import { Save, Download, Upload, Play, Settings, Sliders, Move, LayoutTemplate, 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import axios from 'axios';
 import AssetPanel from '@/components/editor/AssetPanel';
