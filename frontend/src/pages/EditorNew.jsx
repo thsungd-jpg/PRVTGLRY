@@ -33,16 +33,139 @@ const defaultConfig = {
   custom_css: ''
 };
 
+const layoutTemplates = [
+  {
+    id: 'slideshow-sidebar',
+    name: 'Slideshow + Sidebar',
+    elements: [
+      { type: 'text', x: 350, y: 100, width: 300, height: 60 },
+      { type: 'image', x: 200, y: 200, width: 300, height: 250 },
+      { type: 'text', x: 540, y: 200, width: 260, height: 250 },
+      { type: 'audio', x: 350, y: 480, width: 300, height: 60 }
+    ]
+  },
+  {
+    id: 'video-center',
+    name: 'Video Center',
+    elements: [
+      { type: 'text', x: 350, y: 100, width: 300, height: 60 },
+      { type: 'video', x: 275, y: 200, width: 450, height: 300 },
+      { type: 'audio', x: 350, y: 520, width: 300, height: 60 }
+    ]
+  },
+  {
+    id: 'gallery-grid',
+    name: 'Gallery Grid',
+    elements: [
+      { type: 'text', x: 350, y: 100, width: 300, height: 60 },
+      { type: 'image', x: 250, y: 200, width: 200, height: 150 },
+      { type: 'image', x: 550, y: 200, width: 200, height: 150 },
+      { type: 'image', x: 250, y: 380, width: 200, height: 150 },
+      { type: 'image', x: 550, y: 380, width: 200, height: 150 }
+    ]
+  }
+];
+
 export default function EditorNew() {
   const [config, setConfig] = useState(defaultConfig);
   const [viewMode, setViewMode] = useState('preview');
   const [selectedDevice, setSelectedDevice] = useState('desktop');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [loading, setLoading] = useState(false);
   const [previewKey, setPreviewKey] = useState(0);
 
   const updateConfig = (key, value) => {
     setConfig(prev => ({ ...prev, [key]: value }));
+  };
+
+  const applyTemplate = (template) => {
+    const elements = template.elements.map(el => ({
+      ...el,
+      id: Date.now() + Math.random(),
+      rotation: 0,
+      zIndex: 0
+    }));
+    updateConfig('layout', { ...config.layout, elements });
+    toast.success(`Template "${template.name}" applied!`);
+  };
+
+  const handleImageUpload = async (event, type) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await axios.post(`${API}/upload/image`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      const imageData = {
+        url: response.data.url,
+        name: response.data.name
+      };
+
+      if (type === 'background') {
+        updateConfig('background_images', [...(config.background_images || []), imageData]);
+      } else {
+        updateConfig('gallery_images', [...(config.gallery_images || []), imageData]);
+      }
+
+      toast.success('Image uploaded!');
+    } catch (error) {
+      toast.error('Failed to upload image');
+    }
+  };
+
+  const handleVideoUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await axios.post(`${API}/upload/video`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      const videoData = {
+        url: response.data.url,
+        name: response.data.name,
+        title: file.name.replace(/\.[^/.]+$/, '')
+      };
+
+      updateConfig('video_tracks', [...(config.video_tracks || []), videoData]);
+      toast.success('Video uploaded!');
+    } catch (error) {
+      toast.error('Failed to upload video');
+    }
+  };
+
+  const handleAudioUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await axios.post(`${API}/upload/audio`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      const audioData = {
+        url: response.data.url,
+        name: response.data.name,
+        title: file.name.replace(/\.[^/.]+$/, '')
+      };
+
+      updateConfig('audio_tracks', [...(config.audio_tracks || []), audioData]);
+      toast.success('Audio uploaded!');
+    } catch (error) {
+      toast.error('Failed to upload audio');
+    }
   };
 
   const handleGeneratePWA = async () => {
