@@ -362,6 +362,7 @@ def main():
         tester.test_update_preset,
         tester.test_image_upload,
         tester.test_audio_upload,
+        tester.test_video_upload,
         tester.test_generate_pwa,
         tester.test_delete_preset,
         tester.test_nonexistent_preset
