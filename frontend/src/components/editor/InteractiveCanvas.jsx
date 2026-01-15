@@ -3,10 +3,12 @@ import { cn } from '@/lib/utils';
 import { 
   Trash2, Copy, Clipboard, AlignLeft, AlignCenter, AlignRight, 
   AlignStartVertical, AlignCenterVertical, AlignEndVertical,
-  MoveUp, MoveDown, Layers
+  MoveUp, MoveDown, RotateCw, RotateCcw, Lock, Unlock, 
+  FlipHorizontal, FlipVertical, Maximize, Minimize, Eye, EyeOff,
+  Edit2
 } from 'lucide-react';
 
-export default function InteractiveCanvas({ config, updateConfig }) {
+export default function InteractiveCanvas({ config, updateConfig, onElementDoubleClick }) {
   const [selectedElement, setSelectedElement] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
@@ -15,7 +17,10 @@ export default function InteractiveCanvas({ config, updateConfig }) {
   const [initialSize, setInitialSize] = useState({ width: 0, height: 0 });
   const [contextMenu, setContextMenu] = useState(null);
   const [clipboard, setClipboard] = useState(null);
+  const [editingText, setEditingText] = useState(null);
+  const [editValue, setEditValue] = useState('');
   const canvasRef = useRef(null);
+  const inputRef = useRef(null);
 
   const layoutElements = config.layout?.elements || [];
   const snapEnabled = config.layout?.snapEnabled || false;
@@ -26,7 +31,6 @@ export default function InteractiveCanvas({ config, updateConfig }) {
     return Math.round(value / snapGrid) * snapGrid;
   };
 
-  // Get canvas bounds for centering calculations
   const getCanvasBounds = () => {
     if (!canvasRef.current) return { width: 1000, height: 700 };
     const rect = canvasRef.current.getBoundingClientRect();
@@ -35,15 +39,42 @@ export default function InteractiveCanvas({ config, updateConfig }) {
 
   // Element drag start
   const handleElementMouseDown = (e, element) => {
-    if (e.button === 2) return; // Ignore right click
+    if (e.button === 2) return;
     e.stopPropagation();
     setSelectedElement(element.id);
     setIsDragging(true);
     setContextMenu(null);
+    setEditingText(null);
     setDragStart({
       x: e.clientX - element.x,
       y: e.clientY - element.y
     });
+  };
+
+  // Double-click to edit text
+  const handleElementDoubleClick = (e, element) => {
+    e.stopPropagation();
+    
+    // For text-type elements, enable inline editing
+    if (['title', 'header', 'subHeader', 'footer', 'subFooter', 'text'].includes(element.type)) {
+      setEditingText(element.id);
+      setEditValue(element.label || element.type);
+      setTimeout(() => inputRef.current?.focus(), 0);
+    } else if (onElementDoubleClick) {
+      onElementDoubleClick(element);
+    }
+  };
+
+  // Save edited text
+  const saveEditedText = () => {
+    if (editingText && editValue.trim()) {
+      const updatedElements = layoutElements.map(el =>
+        el.id === editingText ? { ...el, label: editValue.trim() } : el
+      );
+      updateConfig('layout', { ...config.layout, elements: updatedElements });
+    }
+    setEditingText(null);
+    setEditValue('');
   };
 
   // Resize start from edges
@@ -67,7 +98,7 @@ export default function InteractiveCanvas({ config, updateConfig }) {
   const handleMouseMove = useCallback((e) => {
     if (isDragging && selectedElement && !isResizing) {
       const element = layoutElements.find(el => el.id === selectedElement);
-      if (!element) return;
+      if (!element || element.locked) return;
 
       const newX = snapToGrid(e.clientX - dragStart.x);
       const newY = snapToGrid(e.clientY - dragStart.y);
@@ -84,7 +115,7 @@ export default function InteractiveCanvas({ config, updateConfig }) {
 
     if (isResizing && selectedElement && resizeHandle) {
       const element = layoutElements.find(el => el.id === selectedElement);
-      if (!element) return;
+      if (!element || element.locked) return;
 
       const deltaX = e.clientX - dragStart.x;
       const deltaY = e.clientY - dragStart.y;
@@ -94,7 +125,6 @@ export default function InteractiveCanvas({ config, updateConfig }) {
       let newX = initialSize.x;
       let newY = initialSize.y;
 
-      // Handle resize based on which edge/corner
       if (resizeHandle.includes('e')) {
         newWidth = snapToGrid(Math.max(50, initialSize.width + deltaX));
       }
@@ -123,7 +153,7 @@ export default function InteractiveCanvas({ config, updateConfig }) {
         elements: updatedElements
       });
     }
-  }, [isDragging, isResizing, selectedElement, resizeHandle, dragStart, initialSize, layoutElements, config.layout, updateConfig, snapToGrid]);
+  }, [isDragging, isResizing, selectedElement, resizeHandle, dragStart, initialSize, layoutElements, config.layout, updateConfig]);
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
@@ -148,6 +178,7 @@ export default function InteractiveCanvas({ config, updateConfig }) {
     if (e.target === canvasRef.current) {
       setSelectedElement(null);
       setContextMenu(null);
+      if (editingText) saveEditedText();
     }
   };
 
@@ -176,6 +207,17 @@ export default function InteractiveCanvas({ config, updateConfig }) {
     setContextMenu(null);
   };
 
+  const duplicateElement = () => {
+    const newElement = {
+      ...contextMenu.element,
+      id: Date.now() + Math.random(),
+      x: contextMenu.element.x + 20,
+      y: contextMenu.element.y + 20
+    };
+    updateConfig('layout', { ...config.layout, elements: [...layoutElements, newElement] });
+    setContextMenu(null);
+  };
+
   const alignElement = (alignment) => {
     const canvasBounds = getCanvasBounds();
     const element = contextMenu.element;
@@ -183,24 +225,12 @@ export default function InteractiveCanvas({ config, updateConfig }) {
     let newY = element.y;
 
     switch (alignment) {
-      case 'left':
-        newX = 20;
-        break;
-      case 'center-h':
-        newX = (canvasBounds.width - element.width) / 2;
-        break;
-      case 'right':
-        newX = canvasBounds.width - element.width - 20;
-        break;
-      case 'top':
-        newY = 20;
-        break;
-      case 'center-v':
-        newY = (canvasBounds.height - element.height) / 2;
-        break;
-      case 'bottom':
-        newY = canvasBounds.height - element.height - 20;
-        break;
+      case 'left': newX = 20; break;
+      case 'center-h': newX = (canvasBounds.width - element.width) / 2; break;
+      case 'right': newX = canvasBounds.width - element.width - 20; break;
+      case 'top': newY = 20; break;
+      case 'center-v': newY = (canvasBounds.height - element.height) / 2; break;
+      case 'bottom': newY = canvasBounds.height - element.height - 20; break;
     }
 
     const updatedElements = layoutElements.map(el =>
@@ -213,10 +243,97 @@ export default function InteractiveCanvas({ config, updateConfig }) {
   const changeZIndex = (direction) => {
     const element = contextMenu.element;
     const currentZ = element.zIndex || 0;
-    const newZ = direction === 'up' ? currentZ + 1 : Math.max(0, currentZ - 1);
+    let newZ;
+    
+    switch (direction) {
+      case 'front': newZ = Math.max(...layoutElements.map(e => e.zIndex || 0)) + 1; break;
+      case 'back': newZ = Math.min(...layoutElements.map(e => e.zIndex || 0)) - 1; break;
+      case 'up': newZ = currentZ + 1; break;
+      case 'down': newZ = Math.max(0, currentZ - 1); break;
+      default: newZ = currentZ;
+    }
     
     const updatedElements = layoutElements.map(el =>
       el.id === element.id ? { ...el, zIndex: newZ } : el
+    );
+    updateConfig('layout', { ...config.layout, elements: updatedElements });
+    setContextMenu(null);
+  };
+
+  const rotateElement = (degrees) => {
+    const element = contextMenu.element;
+    const currentRotation = element.rotation || 0;
+    const newRotation = (currentRotation + degrees) % 360;
+    
+    const updatedElements = layoutElements.map(el =>
+      el.id === element.id ? { ...el, rotation: newRotation } : el
+    );
+    updateConfig('layout', { ...config.layout, elements: updatedElements });
+    setContextMenu(null);
+  };
+
+  const flipElement = (direction) => {
+    const element = contextMenu.element;
+    const key = direction === 'horizontal' ? 'flipX' : 'flipY';
+    const currentFlip = element[key] || false;
+    
+    const updatedElements = layoutElements.map(el =>
+      el.id === element.id ? { ...el, [key]: !currentFlip } : el
+    );
+    updateConfig('layout', { ...config.layout, elements: updatedElements });
+    setContextMenu(null);
+  };
+
+  const toggleLock = () => {
+    const element = contextMenu.element;
+    const updatedElements = layoutElements.map(el =>
+      el.id === element.id ? { ...el, locked: !el.locked } : el
+    );
+    updateConfig('layout', { ...config.layout, elements: updatedElements });
+    setContextMenu(null);
+  };
+
+  const toggleVisibility = () => {
+    const element = contextMenu.element;
+    const updatedElements = layoutElements.map(el =>
+      el.id === element.id ? { ...el, hidden: !el.hidden } : el
+    );
+    updateConfig('layout', { ...config.layout, elements: updatedElements });
+    setContextMenu(null);
+  };
+
+  const fitToCanvas = () => {
+    const canvasBounds = getCanvasBounds();
+    const element = contextMenu.element;
+    const padding = 40;
+    
+    const updatedElements = layoutElements.map(el =>
+      el.id === element.id ? { 
+        ...el, 
+        x: padding / 2, 
+        y: padding / 2,
+        width: canvasBounds.width - padding,
+        height: canvasBounds.height - padding
+      } : el
+    );
+    updateConfig('layout', { ...config.layout, elements: updatedElements });
+    setContextMenu(null);
+  };
+
+  const resetSize = () => {
+    const element = contextMenu.element;
+    let defaultWidth = 200, defaultHeight = 100;
+    
+    switch (element.type) {
+      case 'image': defaultWidth = 300; defaultHeight = 200; break;
+      case 'video': defaultWidth = 400; defaultHeight = 250; break;
+      case 'audio': defaultWidth = 400; defaultHeight = 60; break;
+      case 'title': defaultWidth = 400; defaultHeight = 60; break;
+      default: defaultWidth = 200; defaultHeight = 100;
+    }
+    
+    const updatedElements = layoutElements.map(el =>
+      el.id === element.id ? { ...el, width: defaultWidth, height: defaultHeight } : el
     );
     updateConfig('layout', { ...config.layout, elements: updatedElements });
     setContextMenu(null);
@@ -233,13 +350,16 @@ export default function InteractiveCanvas({ config, updateConfig }) {
     }
   }, [isDragging, isResizing, handleMouseMove, handleMouseUp]);
 
-  // Close context menu on escape
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
         setContextMenu(null);
+        if (editingText) saveEditedText();
       }
-      if (e.key === 'Delete' && selectedElement) {
+      if (e.key === 'Enter' && editingText) {
+        saveEditedText();
+      }
+      if (e.key === 'Delete' && selectedElement && !editingText) {
         const updatedElements = layoutElements.filter(el => el.id !== selectedElement);
         updateConfig('layout', { ...config.layout, elements: updatedElements });
         setSelectedElement(null);
@@ -247,7 +367,7 @@ export default function InteractiveCanvas({ config, updateConfig }) {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedElement, layoutElements, config.layout, updateConfig]);
+  }, [selectedElement, editingText, layoutElements, config.layout, updateConfig]);
 
   return (
     <div 
@@ -264,35 +384,73 @@ export default function InteractiveCanvas({ config, updateConfig }) {
       onClick={handleCanvasClick}
       data-testid="interactive-canvas"
     >
-      {layoutElements.map((element) => (
+      {layoutElements.filter(el => !el.hidden).map((element) => (
         <div
           key={element.id}
           className={cn(
             "absolute transition-colors select-none",
+            element.locked ? "cursor-not-allowed opacity-70" : "",
             selectedElement === element.id
               ? "border-2 border-[#00ffc8] bg-[#00ffc8]/10"
               : "border-2 border-[#00ffc8]/30 bg-[#00c8ff]/5 hover:border-[#00ffc8]/50",
-            isDragging && selectedElement === element.id ? "cursor-grabbing" : "cursor-grab"
+            isDragging && selectedElement === element.id && !element.locked ? "cursor-grabbing" : "cursor-grab"
           )}
           style={{
             left: element.x,
             top: element.y,
             width: element.width,
             height: element.height,
-            transform: `rotate(${element.rotation || 0}deg)`,
+            transform: `rotate(${element.rotation || 0}deg) scaleX(${element.flipX ? -1 : 1}) scaleY(${element.flipY ? -1 : 1})`,
             zIndex: element.zIndex || 0
           }}
           onMouseDown={(e) => handleElementMouseDown(e, element)}
+          onDoubleClick={(e) => handleElementDoubleClick(e, element)}
           onContextMenu={(e) => handleContextMenu(e, element)}
           data-testid={`canvas-element-${element.id}`}
         >
-          {/* Element label */}
-          <div className="absolute top-1 left-1 text-xs font-mono bg-gradient-to-r from-[#00ffc8] to-[#00c8ff] text-black px-2 py-0.5 rounded pointer-events-none">
-            {element.label || element.type}
-          </div>
+          {/* Element label or inline editor */}
+          {editingText === element.id ? (
+            <input
+              ref={inputRef}
+              type="text"
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              onBlur={saveEditedText}
+              className="absolute inset-2 bg-black/80 border border-[#00ffc8] rounded px-2 text-sm text-white focus:outline-none"
+              style={{ transform: `scaleX(${element.flipX ? -1 : 1}) scaleY(${element.flipY ? -1 : 1})` }}
+            />
+          ) : (
+            <div className="absolute top-1 left-1 text-xs font-mono bg-gradient-to-r from-[#00ffc8] to-[#00c8ff] text-black px-2 py-0.5 rounded pointer-events-none">
+              {element.label || element.type}
+            </div>
+          )}
 
-          {/* Resize handles - all edges and corners */}
-          {selectedElement === element.id && (
+          {/* Media preview */}
+          {element.mediaUrl && (
+            <div className="absolute inset-0 flex items-center justify-center overflow-hidden rounded">
+              {element.type === 'image' && (
+                <img src={element.mediaUrl} alt={element.label} className="w-full h-full object-cover" />
+              )}
+              {element.type === 'video' && (
+                <video src={element.mediaUrl} className="w-full h-full object-cover" />
+              )}
+              {element.type === 'audio' && (
+                <div className="w-full h-full bg-black/50 flex items-center justify-center">
+                  <span className="text-xs text-[#00ffc8]">🎵 {element.label}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Lock indicator */}
+          {element.locked && (
+            <div className="absolute top-1 right-1">
+              <Lock className="w-3 h-3 text-[#00ffc8]" />
+            </div>
+          )}
+
+          {/* Resize handles */}
+          {selectedElement === element.id && !element.locked && (
             <>
               {/* Corner handles */}
               <div className="absolute -right-2 -bottom-2 w-4 h-4 bg-[#00ffc8] rounded-full cursor-se-resize shadow-[0_0_10px_rgba(0,255,200,0.5)]"
@@ -319,16 +477,16 @@ export default function InteractiveCanvas({ config, updateConfig }) {
           {/* Position/Size indicator */}
           {selectedElement === element.id && (
             <div className="absolute -top-8 left-0 text-xs bg-black/90 border border-[#00ffc8]/50 px-2 py-1 rounded pointer-events-none whitespace-nowrap">
-              {element.width}×{element.height} | X:{Math.round(element.x)} Y:{Math.round(element.y)}
+              {Math.round(element.width)}×{Math.round(element.height)} | X:{Math.round(element.x)} Y:{Math.round(element.y)}
             </div>
           )}
         </div>
       ))}
 
-      {/* Context Menu (Canva-style) */}
+      {/* Enhanced Context Menu */}
       {contextMenu && (
         <div 
-          className="fixed z-50 bg-[#0a0a0a]/95 backdrop-blur-xl border border-[#00ffc8]/30 rounded-lg shadow-[0_0_30px_rgba(0,255,200,0.2)] py-2 min-w-[200px]"
+          className="fixed z-50 bg-[#0a0a0a]/95 backdrop-blur-xl border border-[#00ffc8]/30 rounded-lg shadow-[0_0_30px_rgba(0,255,200,0.2)] py-2 min-w-[220px]"
           style={{ left: contextMenu.x, top: contextMenu.y }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -338,6 +496,15 @@ export default function InteractiveCanvas({ config, updateConfig }) {
           
           <div className="border-t border-[#00ffc8]/10 my-1" />
           
+          {/* Edit */}
+          <button 
+            className="w-full px-3 py-2 text-left text-sm hover:bg-[#00ffc8]/10 flex items-center gap-2"
+            onClick={() => { onElementDoubleClick?.(contextMenu.element); setContextMenu(null); }}
+          >
+            <Edit2 className="w-4 h-4 text-[#00ffc8]" /> Edit Properties
+          </button>
+          
+          {/* Copy/Paste */}
           <button 
             className="w-full px-3 py-2 text-left text-sm hover:bg-[#00ffc8]/10 flex items-center gap-2"
             onClick={copyElement}
@@ -355,6 +522,13 @@ export default function InteractiveCanvas({ config, updateConfig }) {
           )}
           
           <button 
+            className="w-full px-3 py-2 text-left text-sm hover:bg-[#00ffc8]/10 flex items-center gap-2"
+            onClick={duplicateElement}
+          >
+            <Copy className="w-4 h-4 text-[#00c8ff]" /> Duplicate
+          </button>
+          
+          <button 
             className="w-full px-3 py-2 text-left text-sm hover:bg-red-500/10 text-red-400 flex items-center gap-2"
             onClick={deleteElement}
           >
@@ -363,79 +537,98 @@ export default function InteractiveCanvas({ config, updateConfig }) {
           
           <div className="border-t border-[#00ffc8]/10 my-1" />
           
-          <div className="px-3 py-1 text-xs text-[#00ffc8]/50 uppercase tracking-wider">
-            Align Horizontally
-          </div>
+          {/* Alignment */}
+          <div className="px-3 py-1 text-xs text-[#00ffc8]/50 uppercase tracking-wider">Align</div>
           <div className="flex px-2 py-1 gap-1">
-            <button 
-              className="flex-1 p-2 hover:bg-[#00ffc8]/10 rounded flex items-center justify-center"
-              onClick={() => alignElement('left')}
-              title="Align Left"
-            >
-              <AlignLeft className="w-4 h-4 text-[#00ffc8]" />
+            <button className="flex-1 p-2 hover:bg-[#00ffc8]/10 rounded" onClick={() => alignElement('left')} title="Left">
+              <AlignLeft className="w-4 h-4 text-[#00ffc8] mx-auto" />
             </button>
-            <button 
-              className="flex-1 p-2 hover:bg-[#00ffc8]/10 rounded flex items-center justify-center"
-              onClick={() => alignElement('center-h')}
-              title="Center Horizontally"
-            >
-              <AlignCenter className="w-4 h-4 text-[#00ffc8]" />
+            <button className="flex-1 p-2 hover:bg-[#00ffc8]/10 rounded" onClick={() => alignElement('center-h')} title="Center H">
+              <AlignCenter className="w-4 h-4 text-[#00ffc8] mx-auto" />
             </button>
-            <button 
-              className="flex-1 p-2 hover:bg-[#00ffc8]/10 rounded flex items-center justify-center"
-              onClick={() => alignElement('right')}
-              title="Align Right"
-            >
-              <AlignRight className="w-4 h-4 text-[#00ffc8]" />
+            <button className="flex-1 p-2 hover:bg-[#00ffc8]/10 rounded" onClick={() => alignElement('right')} title="Right">
+              <AlignRight className="w-4 h-4 text-[#00ffc8] mx-auto" />
             </button>
-          </div>
-          
-          <div className="px-3 py-1 text-xs text-[#00ffc8]/50 uppercase tracking-wider">
-            Align Vertically
-          </div>
-          <div className="flex px-2 py-1 gap-1">
-            <button 
-              className="flex-1 p-2 hover:bg-[#00c8ff]/10 rounded flex items-center justify-center"
-              onClick={() => alignElement('top')}
-              title="Align Top"
-            >
-              <AlignStartVertical className="w-4 h-4 text-[#00c8ff]" />
+            <button className="flex-1 p-2 hover:bg-[#00c8ff]/10 rounded" onClick={() => alignElement('top')} title="Top">
+              <AlignStartVertical className="w-4 h-4 text-[#00c8ff] mx-auto" />
             </button>
-            <button 
-              className="flex-1 p-2 hover:bg-[#00c8ff]/10 rounded flex items-center justify-center"
-              onClick={() => alignElement('center-v')}
-              title="Center Vertically"
-            >
-              <AlignCenterVertical className="w-4 h-4 text-[#00c8ff]" />
+            <button className="flex-1 p-2 hover:bg-[#00c8ff]/10 rounded" onClick={() => alignElement('center-v')} title="Center V">
+              <AlignCenterVertical className="w-4 h-4 text-[#00c8ff] mx-auto" />
             </button>
-            <button 
-              className="flex-1 p-2 hover:bg-[#00c8ff]/10 rounded flex items-center justify-center"
-              onClick={() => alignElement('bottom')}
-              title="Align Bottom"
-            >
-              <AlignEndVertical className="w-4 h-4 text-[#00c8ff]" />
+            <button className="flex-1 p-2 hover:bg-[#00c8ff]/10 rounded" onClick={() => alignElement('bottom')} title="Bottom">
+              <AlignEndVertical className="w-4 h-4 text-[#00c8ff] mx-auto" />
             </button>
           </div>
           
           <div className="border-t border-[#00ffc8]/10 my-1" />
           
-          <div className="px-3 py-1 text-xs text-[#00ffc8]/50 uppercase tracking-wider">
-            Layer Order
-          </div>
+          {/* Layer Order */}
+          <div className="px-3 py-1 text-xs text-[#00ffc8]/50 uppercase tracking-wider">Layer</div>
           <div className="flex px-2 py-1 gap-1">
-            <button 
-              className="flex-1 p-2 hover:bg-[#00ffc8]/10 rounded flex items-center justify-center gap-1 text-xs"
-              onClick={() => changeZIndex('up')}
-            >
-              <MoveUp className="w-4 h-4 text-[#00ffc8]" /> Forward
+            <button className="flex-1 p-2 hover:bg-[#00ffc8]/10 rounded text-xs" onClick={() => changeZIndex('front')}>
+              Front
             </button>
-            <button 
-              className="flex-1 p-2 hover:bg-[#00ffc8]/10 rounded flex items-center justify-center gap-1 text-xs"
-              onClick={() => changeZIndex('down')}
-            >
-              <MoveDown className="w-4 h-4 text-[#00c8ff]" /> Back
+            <button className="flex-1 p-2 hover:bg-[#00ffc8]/10 rounded" onClick={() => changeZIndex('up')}>
+              <MoveUp className="w-4 h-4 text-[#00ffc8] mx-auto" />
+            </button>
+            <button className="flex-1 p-2 hover:bg-[#00ffc8]/10 rounded" onClick={() => changeZIndex('down')}>
+              <MoveDown className="w-4 h-4 text-[#00c8ff] mx-auto" />
+            </button>
+            <button className="flex-1 p-2 hover:bg-[#00ffc8]/10 rounded text-xs" onClick={() => changeZIndex('back')}>
+              Back
             </button>
           </div>
+          
+          <div className="border-t border-[#00ffc8]/10 my-1" />
+          
+          {/* Transform */}
+          <div className="px-3 py-1 text-xs text-[#00ffc8]/50 uppercase tracking-wider">Transform</div>
+          <div className="flex px-2 py-1 gap-1">
+            <button className="flex-1 p-2 hover:bg-[#00ffc8]/10 rounded" onClick={() => rotateElement(-90)} title="Rotate Left">
+              <RotateCcw className="w-4 h-4 text-[#00ffc8] mx-auto" />
+            </button>
+            <button className="flex-1 p-2 hover:bg-[#00ffc8]/10 rounded" onClick={() => rotateElement(90)} title="Rotate Right">
+              <RotateCw className="w-4 h-4 text-[#00ffc8] mx-auto" />
+            </button>
+            <button className="flex-1 p-2 hover:bg-[#00c8ff]/10 rounded" onClick={() => flipElement('horizontal')} title="Flip H">
+              <FlipHorizontal className="w-4 h-4 text-[#00c8ff] mx-auto" />
+            </button>
+            <button className="flex-1 p-2 hover:bg-[#00c8ff]/10 rounded" onClick={() => flipElement('vertical')} title="Flip V">
+              <FlipVertical className="w-4 h-4 text-[#00c8ff] mx-auto" />
+            </button>
+          </div>
+          
+          <div className="border-t border-[#00ffc8]/10 my-1" />
+          
+          {/* Size */}
+          <div className="px-3 py-1 text-xs text-[#00ffc8]/50 uppercase tracking-wider">Size</div>
+          <div className="flex px-2 py-1 gap-1">
+            <button className="flex-1 p-2 hover:bg-[#00ffc8]/10 rounded flex items-center justify-center gap-1 text-xs" onClick={fitToCanvas}>
+              <Maximize className="w-3 h-3 text-[#00ffc8]" /> Fit Canvas
+            </button>
+            <button className="flex-1 p-2 hover:bg-[#00ffc8]/10 rounded flex items-center justify-center gap-1 text-xs" onClick={resetSize}>
+              <Minimize className="w-3 h-3 text-[#00c8ff]" /> Reset
+            </button>
+          </div>
+          
+          <div className="border-t border-[#00ffc8]/10 my-1" />
+          
+          {/* Lock/Visibility */}
+          <button 
+            className="w-full px-3 py-2 text-left text-sm hover:bg-[#00ffc8]/10 flex items-center gap-2"
+            onClick={toggleLock}
+          >
+            {contextMenu.element.locked ? <Unlock className="w-4 h-4 text-[#00ffc8]" /> : <Lock className="w-4 h-4 text-[#00ffc8]" />}
+            {contextMenu.element.locked ? 'Unlock' : 'Lock'}
+          </button>
+          
+          <button 
+            className="w-full px-3 py-2 text-left text-sm hover:bg-[#00ffc8]/10 flex items-center gap-2"
+            onClick={toggleVisibility}
+          >
+            {contextMenu.element.hidden ? <Eye className="w-4 h-4 text-[#00c8ff]" /> : <EyeOff className="w-4 h-4 text-[#00c8ff]" />}
+            {contextMenu.element.hidden ? 'Show' : 'Hide'}
+          </button>
         </div>
       )}
 
@@ -448,7 +641,7 @@ export default function InteractiveCanvas({ config, updateConfig }) {
              layoutElements.find(el => el.id === selectedElement)?.type || 'Unknown'}
           </p>
           <p className="text-[#00c8ff]/60 mt-1 text-[10px]">
-            Right-click for options • Delete to remove
+            Double-click to edit • Right-click for options • Delete to remove
           </p>
         </div>
       )}
