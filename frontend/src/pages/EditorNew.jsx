@@ -741,15 +741,29 @@ export default function EditorNew() {
 
             <div className="cyber-divider" />
             
-            {/* Pages with expandable content */}
+            {/* Pages with expandable content - click to switch */}
             <div className="section-header">Pages & Content</div>
             <div className="space-y-1 max-h-[200px] overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
               {(config.pages || []).map((page) => (
                 <div key={page.id}>
-                  <div className="flex items-center gap-1 p-2 bg-black/20 rounded cursor-pointer hover:bg-black/30"
-                    onClick={() => setExpandedPages(prev => ({ ...prev, [page.id]: !prev[page.id] }))}>
-                    {expandedPages[page.id] ? <ChevronDown className="w-3 h-3 text-[#00ffc8]" /> : <ChevronRight className="w-3 h-3 text-[#00ffc8]" />}
-                    <span className="text-xs font-medium flex-1">{page.title}</span>
+                  <div 
+                    className={`flex items-center gap-1 p-2 rounded cursor-pointer transition-colors ${
+                      config.currentPageId === page.id 
+                        ? 'bg-[#00ffc8]/20 border border-[#00ffc8]/50' 
+                        : 'bg-black/20 hover:bg-black/30'
+                    }`}
+                    onClick={() => {
+                      updateConfig('currentPageId', page.id);
+                      setExpandedPages(prev => ({ ...prev, [page.id]: true }));
+                    }}
+                  >
+                    <button 
+                      className="p-0.5 hover:bg-white/10 rounded"
+                      onClick={(e) => { e.stopPropagation(); setExpandedPages(prev => ({ ...prev, [page.id]: !prev[page.id] })); }}
+                    >
+                      {expandedPages[page.id] ? <ChevronDown className="w-3 h-3 text-[#00ffc8]" /> : <ChevronRight className="w-3 h-3 text-[#00ffc8]" />}
+                    </button>
+                    <span className={`text-xs font-medium flex-1 ${config.currentPageId === page.id ? 'text-[#00ffc8]' : ''}`}>{page.title}</span>
                     <span className="text-[10px] text-[#00c8ff]/50">{(config.layout?.elements || []).length} items</span>
                   </div>
                   {expandedPages[page.id] && (
@@ -773,15 +787,29 @@ export default function EditorNew() {
           </div>
         </div>
 
-        {/* Canvas - Always Interactive */}
-        <div className="editor-canvas cyber-grid" ref={canvasRef}>
-          <div className="canvas-workspace" style={{ padding: 0 }}>
-            <div className="w-full h-full">
+        {/* Canvas with device dimensions */}
+        <div className="editor-canvas" ref={canvasRef}>
+          <div className="canvas-workspace flex items-center justify-center" style={{ padding: '1rem' }}>
+            <div 
+              className="relative"
+              style={{
+                width: getDeviceDimensions().width,
+                height: getDeviceDimensions().height,
+                boxShadow: '0 0 40px rgba(0,255,200,0.1)',
+                borderRadius: '12px',
+                overflow: 'hidden'
+              }}
+            >
+              {/* Device info badge */}
+              <div className="absolute -top-6 left-0 text-[10px] text-[#00ffc8]/60 z-10">
+                {devicePresets[selectedDevice]?.name} ({devicePresets[selectedDevice]?.width}×{devicePresets[selectedDevice]?.height})
+              </div>
               <InteractiveCanvas 
                 config={config} 
                 updateConfig={updateConfig}
                 onElementDoubleClick={handleElementDoubleClick}
                 onGlowEdit={openGlowEditor}
+                deviceDimensions={getDeviceDimensions()}
               />
             </div>
           </div>
