@@ -5,10 +5,6 @@ Build a PWA (Progressive Web App) Builder application consisting of two parts:
 1. **Personal App (Phase 1):** Editor for customizing and generating PWAs with features like app name, colors, assets, transitions, layouts, audio/video, and animations.
 2. **Public Website (Phase 2):** A public-facing version with user authentication and Stripe paywall.
 
-## User Personas
-- **Primary User:** Content creators who want to build custom PWAs for portfolios, music, video showcases
-- **Secondary User:** Developers/designers seeking a visual PWA builder
-
 ## Core Requirements
 - PWA customization (name, colors, backgrounds, media)
 - Template system for quick layouts
@@ -22,99 +18,61 @@ Build a PWA (Progressive Web App) Builder application consisting of two parts:
 
 ### Phase 1: Personal App ✅ COMPLETE
 
-#### Latest Update (Jan 15, 2026)
-All 15 user-requested features implemented:
+#### Latest Update (Jan 15, 2026 - Session 2)
+All 6 new features implemented:
 
-1. **Canvas Expansion** ✅
-   - Canvas now fills entire edit mode grid
-   - No content cut off
-   - Full visibility of all elements
+1. **Always-On Edit Mode** ✅
+   - Removed view mode toggle
+   - Canvas is always interactive (click/drag/resize anytime)
+   - "EDIT MODE" badge always shown
+   - No need to switch between modes
 
-2. **Media Upload Fix** ✅
-   - Videos, audio, images now display properly
-   - Uploaded media automatically added to canvas
-   - Media shows in preview with proper player frames
+2. **Page-Based Content Organization** ✅
+   - "Pages & Content" section in sidebar
+   - Click page name to expand/collapse
+   - Shows elements nested under each page
+   - Displays element count (e.g., "5 items")
+   - Elements show coordinates
 
-3. **Double-Click Sidebar Elements** ✅
-   - Double-click any element in "Elements on Canvas" list
-   - Opens edit dialog with position (X, Y), size (Width, Height), Z-Index controls
-   - Live updates to canvas
+3. **Font Customization** ✅
+   - Full Google Fonts library (~60+ popular fonts)
+   - Categories: Sans Serif, Serif, Display, Monospace, Handwriting
+   - Search/filter fonts
+   - Custom font upload (.ttf, .otf, .woff, .woff2)
+   - Per-element font override
+   - Fonts rendered in their actual typeface in selector
 
-4. **Inline Text Editing** ✅
-   - Double-click title/caption boxes on canvas
-   - Inline text input appears
-   - Press Enter or click outside to save
+4. **Enhanced Glow Effects** ✅
+   - Per-element glow settings (via right-click → "Edit Glow Effects")
+   - Basic glow: Enable, Color, Intensity, Spread
+   - **Pulsate Effect**: Speed, Min/Max Intensity
+   - **Flash Effect**: Total Speed, On Duration, Off Duration
+   - **Color Shift**: Speed, Custom color array with preview
 
-5. **Player Frame Styles** ✅
-   - 5 styles: Minimal, Rounded, Glassmorphism, Neon, Retro
-   - Applies to video and audio players
-   - Configurable in Layout popover
+5. **Per-Element Glow Settings** ✅
+   - Each element has its own glow configuration
+   - Independent of global glow settings
+   - Accessible via right-click context menu
+   - All effects (pulsate, flash, color shift) configurable
 
-6. **Save/Open Projects** ✅
-   - Save button opens dialog for project name
-   - Open button shows all saved projects
-   - Projects stored in MongoDB with full config
-   - Delete option for each project
+6. **Right-Click on Sidebar Items** ✅
+   - Right-click any element in "Pages & Content" list
+   - **Duplicate** option
+   - **Delete** option (red)
+   - Quick element management without opening canvas menu
 
-7. **Template Centering** ✅
-   - Templates automatically centered in canvas
-   - Scaling applied if content too large
-   - All elements visible after applying template
-
-8. **30+ Device Display Options** ✅
-   - iPhone: SE (2016/2022), XR, 12 Pro, 14 Pro Max, 4, 5, 6/7
-   - Pixel: 3 XL, 7, 2, 2 XL
-   - Galaxy: S8+, S20 Ultra, S5, A51, Z Fold 5 (Inner/Cover)
-   - iPad: Mini 5/6, Air, Pro 11", Pro 12.9"
-   - Surface: Pro 7, Duo, Duo Both
-   - Other: Zenbook Fold, Nest Hub, Nest Hub Max, Desktop, Laptop
-
-9. **Pages & Page Transitions** ✅
-   - Add/delete/rename pages
-   - Page transition types: Fade, Slide (L/R/U/D), Scale, Flip X/Y
-   - Duration slider (100-1000ms)
-
-10. **Navigation Toggle** ✅
-    - Swipe Navigation toggle (on/off)
-    - Click Navigation toggle (on/off)
-
-11. **Slideshow Settings** ✅
-    - Transition effects: Fade, Slide, Zoom In/Out, Flip, Rotate
-    - Duration slider (1-15 seconds)
-    - Auto Play toggle
-    - Loop toggle
-
-12. **Saved Assets with Project** ✅
-    - Base64 encoding preserves all media
-    - Full config saved to MongoDB
-    - Reload projects with all assets intact
-
-13. **Enhanced Right-Click Menu** ✅
-    - Edit Properties
-    - Copy, Duplicate, Delete
-    - Align: Left, Center, Right, Top, Middle, Bottom
-    - Layer: Front, Up, Down, Back
-    - Transform: Rotate CCW/CW, Flip H/V
-    - Size: Fit Canvas, Reset
-    - Lock/Unlock
-    - Show/Hide
-
-14. **Rename Uploads** ✅
-    - Edit icon on each uploaded item
-    - Rename dialog for pages, videos, audio, images
-
-15. **Click/Drag Title Positioning** ✅
-    - All elements draggable on interactive canvas
-    - 8 resize handles (4 corners + 4 edges)
-    - Real-time position/size indicator
-
-#### Previously Implemented
-- 21 templates (Slideshow, Video, Gallery, Hero, Portfolio, etc.)
+#### Previously Implemented Features
+- 21+ templates (Slideshow, Video, Gallery, Hero, Portfolio, etc.)
 - Text sections (Title, Header, Sub Header, Footer, Sub Footer)
-- PRVT BLDR branding
-- Neon blue/green color theme
-- Glow effects with intensity control
-- Grid snap controls
+- PRVT BLDR branding with neon blue/green theme
+- 30+ device presets (iPhones, Pixels, Galaxy, iPads, Surface, etc.)
+- Save/Open projects (MongoDB)
+- Pages & page transitions
+- Slideshow settings (transitions, duration, autoplay, loop)
+- Player frame styles (Minimal, Rounded, Glassmorphism, Neon, Retro)
+- Interactive canvas with resize handles
+- Enhanced right-click menu (Edit, Copy, Duplicate, Align, Layer, Transform, Size, Lock, Hide)
+- Upload media (images, videos, audio) with auto-add to canvas
 - PWA generation and export
 
 ---
@@ -125,20 +83,21 @@ All 15 user-requested features implemented:
 - **Frontend:** React 18 + Tailwind CSS + Shadcn UI
 - **Backend:** FastAPI (Python)
 - **Database:** MongoDB
+- **Fonts:** Google Fonts API + Custom font upload
 - **Styling:** Custom CSS with neon blue/green theme (#00ffc8, #00c8ff)
 
 ### Key Files
 ```
 /app/
 ├── backend/
-│   └── server.py              # API endpoints, PWA generation, presets
+│   └── server.py              # API endpoints, PWA generation
 ├── frontend/
 │   └── src/
 │       ├── pages/
 │       │   └── EditorNew.jsx  # Main editor (all features)
 │       ├── components/editor/
 │       │   ├── PreviewCanvas.jsx     # Preview rendering
-│       │   └── InteractiveCanvas.jsx # Interactive editing
+│       │   └── InteractiveCanvas.jsx # Interactive editing + glow
 │       ├── App.css            # Editor styles
 │       └── index.css          # Global styles
 ```
@@ -148,19 +107,59 @@ All 15 user-requested features implemented:
 - `POST /api/upload/video` - Upload videos (base64)
 - `POST /api/upload/audio` - Upload audio (base64)
 - `POST /api/generate-pwa` - Generate PWA package
-- `GET /api/presets` - List saved projects
-- `POST /api/presets` - Save project
-- `GET /api/presets/{id}` - Get project
-- `PUT /api/presets/{id}` - Update project
+- `GET/POST /api/presets` - Manage saved projects
 - `DELETE /api/presets/{id}` - Delete project
 
 ---
 
+## Font Library
+
+### Google Fonts (Pre-loaded)
+| Category | Fonts |
+|----------|-------|
+| Sans Serif | Inter, Roboto, Open Sans, Lato, Montserrat, Poppins, Nunito, Raleway, Work Sans, Outfit, DM Sans, Plus Jakarta Sans, Manrope, Space Grotesk, Urbanist |
+| Serif | Playfair Display, Merriweather, Lora, Crimson Text, Source Serif Pro, Libre Baskerville, EB Garamond, Cormorant Garamond, Bitter, Spectral |
+| Display | Bebas Neue, Oswald, Anton, Archivo Black, Passion One, Righteous, Black Ops One, Bungee, Fugaz One, Russo One |
+| Monospace | JetBrains Mono, Fira Code, Source Code Pro, IBM Plex Mono, Roboto Mono, Space Mono, Ubuntu Mono, Inconsolata |
+| Handwriting | Dancing Script, Pacifico, Caveat, Great Vibes, Satisfy, Lobster, Sacramento, Kaushan Script, Amatic SC, Permanent Marker |
+
+### Custom Font Support
+- Upload: .ttf, .otf, .woff, .woff2
+- Stored as base64 in project config
+- Available immediately after upload
+
+---
+
+## Glow Effects Reference
+
+### Basic Glow
+- **Enable**: Toggle on/off
+- **Color**: Hex color picker
+- **Intensity**: 5-80px
+- **Spread**: 0-50px
+
+### Pulsate Effect
+- **Speed**: 200-5000ms (animation cycle)
+- **Min Intensity**: Starting glow intensity
+- **Max Intensity**: Peak glow intensity
+
+### Flash Effect
+- **Total Speed**: 100-2000ms (full cycle)
+- **On Duration**: Time glow is visible
+- **Off Duration**: Time glow is hidden
+
+### Color Shift
+- **Speed**: 500-10000ms (transition between colors)
+- **Colors**: Comma-separated hex values (e.g., "#00ffc8, #00c8ff, #ff00c8")
+
+---
+
 ## Testing Status
-- All 15 features verified via screenshots and API testing
-- Save/Load confirmed working (MongoDB)
-- All device presets rendering correctly
-- Context menu fully functional
+- All 6 new features verified via screenshots
+- Font panel with search working
+- Glow editor with all effects working
+- Sidebar context menu working
+- Always-on edit mode confirmed
 
 ---
 
@@ -174,30 +173,18 @@ All 15 user-requested features implemented:
 
 ### P1 - High Priority
 - [ ] Undo/Redo functionality
+- [ ] Keyboard shortcuts (Ctrl+S, Ctrl+Z, Delete)
 - [ ] Template preview thumbnails
-- [ ] Keyboard shortcuts
 
 ### P2 - Medium Priority
 - [ ] Animation presets library
-- [ ] Export to different formats (APK, iOS)
-- [ ] Collaboration features
+- [ ] Export to APK/iOS
+- [ ] Multi-select elements
 
 ### P3 - Low Priority / Future
 - [ ] User-submitted template marketplace
+- [ ] Collaboration features
 - [ ] Version history
-- [ ] Mobile app version
-
----
-
-## Device Presets Reference
-| Category | Devices |
-|----------|---------|
-| iPhone | SE 2016 (320×568), SE 2022 (375×667), XR (414×896), 12 Pro (390×844), 14 Pro Max (430×932), 4 (320×480), 5 (320×568), 6/7 (375×667) |
-| Pixel | 3 XL (412×846), 7 (412×915), 2 (412×732), 2 XL (412×824) |
-| Galaxy | S8+ (360×740), S20 Ultra (412×915), S5 (360×640), A51 (412×915), Z Fold Inner (384×832), Z Fold Cover (904×2316) |
-| iPad | Mini 5 (768×1024), Mini 6 (744×1133), Air (820×1180), Pro 11" (834×1194), Pro 12.9" (1024×1366) |
-| Surface | Pro 7 (1368×912), Duo (720×1114), Duo Both (1440×1114) |
-| Other | Zenbook Fold (2560×1920), Zenbook Folded (1920×1280), Nest Hub (1024×600), Nest Hub Max (1280×800) |
 
 ---
 
@@ -206,5 +193,6 @@ All 15 user-requested features implemented:
 
 ## Notes
 - All Phase 1 features complete as of Jan 15, 2026
-- UI follows futuristic, minimal design philosophy
-- Color scheme: Neon blue/green (#00ffc8, #00c8ff)
+- Always-on edit mode removes friction
+- Per-element glow with advanced effects (pulsate, flash, color shift)
+- Full Google Fonts + custom font upload support
