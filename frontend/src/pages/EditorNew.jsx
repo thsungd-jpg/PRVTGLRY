@@ -1,11 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Save, Download, Play, Settings, Layers, Palette, Sparkles, Grid3x3, Monitor, Tablet, Smartphone, Move, Menu, X, Image, Video, Music, FileText, LayoutTemplate, Type } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Save, Download, Play, Layers, Palette, Sparkles, Grid3x3, Monitor, Tablet, Smartphone, Move, Menu, X, Image, Video, Music, Type, FolderOpen, Plus, Trash2, Edit2, Settings2, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import axios from 'axios';
 import PreviewCanvas from '@/components/editor/PreviewCanvas';
@@ -15,6 +17,83 @@ import { saveAs } from 'file-saver';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
+
+// Device presets
+const devicePresets = {
+  // iPhones
+  'iphone-se-2016': { name: 'iPhone SE (2016)', width: 320, height: 568 },
+  'iphone-se-2022': { name: 'iPhone SE (2022)', width: 375, height: 667 },
+  'iphone-xr': { name: 'iPhone XR', width: 414, height: 896 },
+  'iphone-12-pro': { name: 'iPhone 12 Pro', width: 390, height: 844 },
+  'iphone-14-pro-max': { name: 'iPhone 14 Pro Max', width: 430, height: 932 },
+  'iphone-4': { name: 'iPhone 4', width: 320, height: 480 },
+  'iphone-5': { name: 'iPhone 5', width: 320, height: 568 },
+  'iphone-6-7': { name: 'iPhone 6/7', width: 375, height: 667 },
+  // Pixels
+  'pixel-3-xl': { name: 'Pixel 3 XL', width: 412, height: 846 },
+  'pixel-7': { name: 'Pixel 7', width: 412, height: 915 },
+  'pixel-2': { name: 'Pixel 2', width: 412, height: 732 },
+  'pixel-2-xl': { name: 'Pixel 2 XL', width: 412, height: 824 },
+  // Galaxy
+  'galaxy-s8': { name: 'Galaxy S8+', width: 360, height: 740 },
+  'galaxy-s20': { name: 'Galaxy S20 Ultra', width: 412, height: 915 },
+  'galaxy-s5': { name: 'Galaxy S5', width: 360, height: 640 },
+  'galaxy-a51': { name: 'Galaxy A51', width: 412, height: 915 },
+  'galaxy-z-fold-inner': { name: 'Galaxy Z Fold 5 (Inner)', width: 384, height: 832 },
+  'galaxy-z-fold-cover': { name: 'Galaxy Z Fold 5 (Cover)', width: 904, height: 2316 },
+  // iPads
+  'ipad-mini-5': { name: 'iPad Mini (5th)', width: 768, height: 1024 },
+  'ipad-mini-6': { name: 'iPad Mini (6th)', width: 744, height: 1133 },
+  'ipad-air': { name: 'iPad Air', width: 820, height: 1180 },
+  'ipad-pro-12': { name: 'iPad Pro 12.9"', width: 1024, height: 1366 },
+  'ipad-pro-11': { name: 'iPad Pro 11"', width: 834, height: 1194 },
+  // Surface
+  'surface-pro': { name: 'Surface Pro 7', width: 1368, height: 912 },
+  'surface-duo': { name: 'Surface Duo', width: 720, height: 1114 },
+  'surface-duo-both': { name: 'Surface Duo (Both)', width: 1440, height: 1114 },
+  // Other
+  'zenbook-fold': { name: 'Zenbook Fold', width: 2560, height: 1920 },
+  'zenbook-fold-folded': { name: 'Zenbook Fold (Folded)', width: 1920, height: 1280 },
+  'nest-hub': { name: 'Nest Hub', width: 1024, height: 600 },
+  'nest-hub-max': { name: 'Nest Hub Max', width: 1280, height: 800 },
+  // Desktop
+  'desktop': { name: 'Desktop', width: 1920, height: 1080 },
+  'laptop': { name: 'Laptop', width: 1366, height: 768 },
+};
+
+// Player frame styles
+const playerFrameStyles = {
+  minimal: { name: 'Minimal', borderRadius: 4, border: 'none', shadow: 'none', bg: 'transparent' },
+  rounded: { name: 'Rounded', borderRadius: 16, border: '2px solid rgba(0,255,200,0.3)', shadow: '0 4px 20px rgba(0,0,0,0.3)', bg: 'rgba(0,0,0,0.3)' },
+  glassmorphism: { name: 'Glassmorphism', borderRadius: 20, border: '1px solid rgba(255,255,255,0.2)', shadow: '0 8px 32px rgba(0,0,0,0.4)', bg: 'rgba(255,255,255,0.1)', backdrop: 'blur(10px)' },
+  neon: { name: 'Neon', borderRadius: 8, border: '2px solid #00ffc8', shadow: '0 0 20px rgba(0,255,200,0.4), inset 0 0 20px rgba(0,255,200,0.1)', bg: 'rgba(0,0,0,0.5)' },
+  retro: { name: 'Retro', borderRadius: 0, border: '4px solid #00c8ff', shadow: '4px 4px 0 #00ffc8', bg: '#0a0a0a' },
+};
+
+// Slideshow transition types
+const slideshowTransitions = [
+  { id: 'fade', name: 'Fade' },
+  { id: 'slide-left', name: 'Slide Left' },
+  { id: 'slide-right', name: 'Slide Right' },
+  { id: 'slide-up', name: 'Slide Up' },
+  { id: 'slide-down', name: 'Slide Down' },
+  { id: 'zoom-in', name: 'Zoom In' },
+  { id: 'zoom-out', name: 'Zoom Out' },
+  { id: 'flip', name: 'Flip' },
+  { id: 'rotate', name: 'Rotate' },
+];
+
+// Page transition types
+const pageTransitions = [
+  { id: 'fade', name: 'Fade' },
+  { id: 'slide-left', name: 'Slide Left' },
+  { id: 'slide-right', name: 'Slide Right' },
+  { id: 'slide-up', name: 'Slide Up' },
+  { id: 'slide-down', name: 'Slide Down' },
+  { id: 'scale', name: 'Scale' },
+  { id: 'flip-x', name: 'Flip X' },
+  { id: 'flip-y', name: 'Flip Y' },
+];
 
 const defaultConfig = {
   app_name: 'My PWA App',
@@ -27,8 +106,12 @@ const defaultConfig = {
   gallery_images: [],
   video_tracks: [],
   audio_tracks: [],
-  pages: [{ id: 'home', title: 'Home' }],
-  page_transition: { type: 'fade', duration: 500 },
+  pages: [{ id: 'home', title: 'Home', elements: [] }],
+  currentPageId: 'home',
+  page_transition: { type: 'fade', duration: 300 },
+  page_navigation: { swipeEnabled: true, clickEnabled: true },
+  slideshow_settings: { transition: 'fade', duration: 5000, autoPlay: true, loop: true },
+  player_frame: 'glassmorphism',
   animations: [],
   custom_css: '',
   text_sections: {
@@ -40,7 +123,7 @@ const defaultConfig = {
   }
 };
 
-// Extended template library - 20+ templates
+// Extended template library
 const layoutTemplates = [
   {
     id: 'slideshow-sidebar',
@@ -171,29 +254,6 @@ const layoutTemplates = [
     ]
   },
   {
-    id: 'asymmetric',
-    name: 'Asymmetric',
-    description: 'Dynamic asymmetric layout',
-    elements: [
-      { type: 'title', label: 'Title', x: 50, y: 30, width: 700, height: 50 },
-      { type: 'video', label: 'Main Video', x: 50, y: 100, width: 420, height: 300 },
-      { type: 'image', label: 'Image 1', x: 490, y: 100, width: 260, height: 145 },
-      { type: 'image', label: 'Image 2', x: 490, y: 255, width: 260, height: 145 },
-      { type: 'text', label: 'Content', x: 50, y: 420, width: 700, height: 100 }
-    ]
-  },
-  {
-    id: 'mobile-first',
-    name: 'Mobile-First',
-    description: 'Optimized for mobile/portrait',
-    elements: [
-      { type: 'title', label: 'Title', x: 150, y: 30, width: 500, height: 50 },
-      { type: 'video', label: 'Video', x: 150, y: 100, width: 500, height: 300 },
-      { type: 'text', label: 'Description', x: 150, y: 420, width: 500, height: 80 },
-      { type: 'audio', label: 'Audio', x: 150, y: 520, width: 500, height: 50 }
-    ]
-  },
-  {
     id: 'landing-page',
     name: 'Landing Page',
     description: 'Marketing landing page style',
@@ -282,7 +342,34 @@ const layoutTemplates = [
       { type: 'title', label: 'Overlay Title', x: 50, y: 200, width: 700, height: 80, zIndex: 10 },
       { type: 'subHeader', label: 'Overlay Subtitle', x: 50, y: 300, width: 700, height: 40, zIndex: 10 }
     ]
-  }
+  },
+  {
+    id: 'podcast',
+    name: 'Podcast',
+    description: 'Podcast episode layout',
+    elements: [
+      { type: 'image', label: 'Cover Art', x: 50, y: 50, width: 300, height: 300 },
+      { type: 'title', label: 'Episode Title', x: 380, y: 50, width: 370, height: 60 },
+      { type: 'header', label: 'Show Name', x: 380, y: 120, width: 370, height: 40 },
+      { type: 'text', label: 'Description', x: 380, y: 180, width: 370, height: 170 },
+      { type: 'audio', label: 'Audio Player', x: 50, y: 380, width: 700, height: 80 },
+      { type: 'footer', label: 'Links', x: 50, y: 480, width: 700, height: 40 }
+    ]
+  },
+  {
+    id: 'dashboard',
+    name: 'Dashboard',
+    description: 'Data dashboard layout',
+    elements: [
+      { type: 'title', label: 'Dashboard Title', x: 50, y: 20, width: 700, height: 50 },
+      { type: 'image', label: 'Chart 1', x: 50, y: 90, width: 340, height: 180 },
+      { type: 'image', label: 'Chart 2', x: 410, y: 90, width: 340, height: 180 },
+      { type: 'image', label: 'Chart 3', x: 50, y: 290, width: 220, height: 150 },
+      { type: 'image', label: 'Chart 4', x: 290, y: 290, width: 220, height: 150 },
+      { type: 'image', label: 'Chart 5', x: 530, y: 290, width: 220, height: 150 },
+      { type: 'text', label: 'Summary', x: 50, y: 460, width: 700, height: 80 }
+    ]
+  },
 ];
 
 export default function EditorNew() {
@@ -292,7 +379,31 @@ export default function EditorNew() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [loading, setLoading] = useState(false);
   const [previewKey, setPreviewKey] = useState(0);
+  const [savedPresets, setSavedPresets] = useState([]);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [showLoadDialog, setShowLoadDialog] = useState(false);
+  const [presetName, setPresetName] = useState('');
+  const [editingElement, setEditingElement] = useState(null);
+  const [showElementEditor, setShowElementEditor] = useState(false);
+  const [showDeviceSelector, setShowDeviceSelector] = useState(false);
+  const [showPagesPanel, setShowPagesPanel] = useState(false);
+  const [showSlideshowSettings, setShowSlideshowSettings] = useState(false);
+  const [renameDialog, setRenameDialog] = useState({ open: false, type: '', index: -1, value: '' });
   const canvasRef = useRef(null);
+
+  // Load presets on mount
+  useEffect(() => {
+    loadPresets();
+  }, []);
+
+  const loadPresets = async () => {
+    try {
+      const response = await axios.get(`${API}/presets`);
+      setSavedPresets(response.data);
+    } catch (error) {
+      console.error('Failed to load presets:', error);
+    }
+  };
 
   const updateConfig = (key, value) => {
     setConfig(prev => ({ ...prev, [key]: value }));
@@ -309,14 +420,9 @@ export default function EditorNew() {
   };
 
   // Center elements on canvas
-  const centerElements = (elements) => {
+  const centerElements = (elements, canvasWidth = 800, canvasHeight = 560) => {
     if (elements.length === 0) return elements;
     
-    // Get canvas dimensions (approximate for centering)
-    const canvasWidth = 800;
-    const canvasHeight = 560;
-    
-    // Calculate bounding box of all elements
     let minX = Infinity, maxX = -Infinity;
     let minY = Infinity, maxY = -Infinity;
     
@@ -330,15 +436,28 @@ export default function EditorNew() {
     const contentWidth = maxX - minX;
     const contentHeight = maxY - minY;
     
-    // Calculate offset to center
-    const offsetX = (canvasWidth - contentWidth) / 2 - minX;
-    const offsetY = (canvasHeight - contentHeight) / 2 - minY;
+    // Scale down if content is too large
+    let scale = 1;
+    const padding = 40;
+    if (contentWidth > canvasWidth - padding) {
+      scale = Math.min(scale, (canvasWidth - padding) / contentWidth);
+    }
+    if (contentHeight > canvasHeight - padding) {
+      scale = Math.min(scale, (canvasHeight - padding) / contentHeight);
+    }
     
-    // Apply offset to all elements
+    const scaledWidth = contentWidth * scale;
+    const scaledHeight = contentHeight * scale;
+    
+    const offsetX = (canvasWidth - scaledWidth) / 2 - minX * scale;
+    const offsetY = (canvasHeight - scaledHeight) / 2 - minY * scale;
+    
     return elements.map(el => ({
       ...el,
-      x: Math.round(el.x + offsetX),
-      y: Math.round(el.y + offsetY)
+      x: Math.round(el.x * scale + offsetX),
+      y: Math.round(el.y * scale + offsetY),
+      width: Math.round(el.width * scale),
+      height: Math.round(el.height * scale)
     }));
   };
 
@@ -357,6 +476,53 @@ export default function EditorNew() {
     toast.success(`Template "${template.name}" applied!`);
   };
 
+  // Add uploaded media to canvas
+  const addMediaToCanvas = (type, mediaData) => {
+    const currentElements = config.layout?.elements || [];
+    const canvasWidth = 800;
+    const canvasHeight = 560;
+    
+    let width, height;
+    switch (type) {
+      case 'image':
+        width = 300;
+        height = 200;
+        break;
+      case 'video':
+        width = 400;
+        height: 250;
+        break;
+      case 'audio':
+        width = 400;
+        height = 60;
+        break;
+      default:
+        width = 200;
+        height = 100;
+    }
+    
+    const newElement = {
+      id: Date.now() + Math.random(),
+      type,
+      label: mediaData.name || `${type} ${currentElements.length + 1}`,
+      x: (canvasWidth - width) / 2,
+      y: (canvasHeight - height) / 2,
+      width,
+      height,
+      rotation: 0,
+      zIndex: currentElements.length,
+      mediaUrl: mediaData.url,
+      mediaName: mediaData.name
+    };
+    
+    updateConfig('layout', {
+      ...config.layout,
+      elements: [...currentElements, newElement]
+    });
+    
+    toast.success(`${type} added to canvas!`);
+  };
+
   const handleImageUpload = async (event, type) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -365,24 +531,28 @@ export default function EditorNew() {
     formData.append('file', file);
 
     try {
+      setLoading(true);
       const response = await axios.post(`${API}/upload/image`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
       const imageData = {
+        id: Date.now() + Math.random(),
         url: response.data.url,
-        name: response.data.name
+        name: file.name.replace(/\.[^/.]+$/, '')
       };
 
       if (type === 'background') {
         updateConfig('background_images', [...(config.background_images || []), imageData]);
+        toast.success('Background image uploaded!');
       } else {
         updateConfig('gallery_images', [...(config.gallery_images || []), imageData]);
+        addMediaToCanvas('image', imageData);
       }
-
-      toast.success('Image uploaded!');
     } catch (error) {
       toast.error('Failed to upload image');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -394,20 +564,24 @@ export default function EditorNew() {
     formData.append('file', file);
 
     try {
+      setLoading(true);
       const response = await axios.post(`${API}/upload/video`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
       const videoData = {
+        id: Date.now() + Math.random(),
         url: response.data.url,
         name: response.data.name,
         title: file.name.replace(/\.[^/.]+$/, '')
       };
 
       updateConfig('video_tracks', [...(config.video_tracks || []), videoData]);
-      toast.success('Video uploaded!');
+      addMediaToCanvas('video', videoData);
     } catch (error) {
       toast.error('Failed to upload video');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -419,21 +593,141 @@ export default function EditorNew() {
     formData.append('file', file);
 
     try {
+      setLoading(true);
       const response = await axios.post(`${API}/upload/audio`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
       const audioData = {
+        id: Date.now() + Math.random(),
         url: response.data.url,
         name: response.data.name,
         title: file.name.replace(/\.[^/.]+$/, '')
       };
 
       updateConfig('audio_tracks', [...(config.audio_tracks || []), audioData]);
-      toast.success('Audio uploaded!');
+      addMediaToCanvas('audio', audioData);
     } catch (error) {
       toast.error('Failed to upload audio');
+    } finally {
+      setLoading(false);
     }
+  };
+
+  // Save project
+  const handleSaveProject = async () => {
+    if (!presetName.trim()) {
+      toast.error('Please enter a project name');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await axios.post(`${API}/presets`, {
+        name: presetName,
+        config: { ...config, app_name: presetName }
+      });
+      toast.success('Project saved!');
+      setShowSaveDialog(false);
+      setPresetName('');
+      loadPresets();
+    } catch (error) {
+      toast.error('Failed to save project');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load project
+  const handleLoadProject = async (preset) => {
+    setConfig({
+      ...defaultConfig,
+      ...preset,
+      ...preset.config
+    });
+    setShowLoadDialog(false);
+    toast.success(`Loaded "${preset.name}"`);
+  };
+
+  // Delete project
+  const handleDeleteProject = async (presetId) => {
+    try {
+      await axios.delete(`${API}/presets/${presetId}`);
+      toast.success('Project deleted');
+      loadPresets();
+    } catch (error) {
+      toast.error('Failed to delete project');
+    }
+  };
+
+  // Handle element double-click in sidebar
+  const handleElementDoubleClick = (element) => {
+    setEditingElement(element);
+    setShowElementEditor(true);
+  };
+
+  // Update element properties
+  const updateElement = (elementId, updates) => {
+    const elements = config.layout?.elements || [];
+    const updatedElements = elements.map(el =>
+      el.id === elementId ? { ...el, ...updates } : el
+    );
+    updateConfig('layout', { ...config.layout, elements: updatedElements });
+  };
+
+  // Add new page
+  const addPage = () => {
+    const newPage = {
+      id: `page-${Date.now()}`,
+      title: `Page ${(config.pages?.length || 0) + 1}`,
+      elements: []
+    };
+    updateConfig('pages', [...(config.pages || []), newPage]);
+    toast.success('Page added!');
+  };
+
+  // Delete page
+  const deletePage = (pageId) => {
+    if ((config.pages?.length || 0) <= 1) {
+      toast.error('Cannot delete the last page');
+      return;
+    }
+    const newPages = config.pages.filter(p => p.id !== pageId);
+    updateConfig('pages', newPages);
+    if (config.currentPageId === pageId) {
+      updateConfig('currentPageId', newPages[0]?.id);
+    }
+    toast.success('Page deleted');
+  };
+
+  // Rename item
+  const handleRename = (type, index, newName) => {
+    if (!newName.trim()) return;
+    
+    switch (type) {
+      case 'page':
+        const pages = [...config.pages];
+        pages[index] = { ...pages[index], title: newName };
+        updateConfig('pages', pages);
+        break;
+      case 'video':
+        const videos = [...config.video_tracks];
+        videos[index] = { ...videos[index], title: newName };
+        updateConfig('video_tracks', videos);
+        break;
+      case 'audio':
+        const audios = [...config.audio_tracks];
+        audios[index] = { ...audios[index], title: newName };
+        updateConfig('audio_tracks', audios);
+        break;
+      case 'image':
+        const images = [...config.gallery_images];
+        images[index] = { ...images[index], name: newName };
+        updateConfig('gallery_images', images);
+        break;
+    }
+    setRenameDialog({ open: false, type: '', index: -1, value: '' });
+    toast.success('Renamed successfully');
   };
 
   const handleGeneratePWA = async () => {
@@ -454,6 +748,27 @@ export default function EditorNew() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Get device dimensions
+  const getDeviceDimensions = () => {
+    const preset = devicePresets[selectedDevice];
+    if (!preset) return { width: '100%', height: '100%' };
+    
+    // Scale down to fit in canvas area
+    const maxWidth = window.innerWidth - 400;
+    const maxHeight = window.innerHeight - 200;
+    
+    let scale = 1;
+    if (preset.width > maxWidth) scale = maxWidth / preset.width;
+    if (preset.height * scale > maxHeight) scale = maxHeight / preset.height;
+    
+    return {
+      width: Math.round(preset.width * scale),
+      height: Math.round(preset.height * scale),
+      actualWidth: preset.width,
+      actualHeight: preset.height
+    };
   };
 
   return (
@@ -478,6 +793,14 @@ export default function EditorNew() {
         />
 
         <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" className="compact-btn" onClick={() => setShowSaveDialog(true)}>
+            <Save className="w-3 h-3 mr-1" />
+            Save
+          </Button>
+          <Button size="sm" variant="outline" className="compact-btn" onClick={() => setShowLoadDialog(true)}>
+            <FolderOpen className="w-3 h-3 mr-1" />
+            Open
+          </Button>
           <Button size="sm" variant="outline" className="compact-btn" onClick={handleGeneratePWA} disabled={loading}>
             <Download className="w-3 h-3 mr-1" />
             Export
@@ -523,51 +846,17 @@ export default function EditorNew() {
           <PopoverContent className="popover-panel w-72">
             <div className="section-header">Text Sections</div>
             <div className="space-y-3">
-              <div>
-                <Label className="text-xs mb-1 block">Title</Label>
-                <Input 
-                  value={config.text_sections?.title || ''} 
-                  onChange={(e) => updateTextSection('title', e.target.value)}
-                  className="compact-input w-full"
-                  placeholder="Main title"
-                />
-              </div>
-              <div>
-                <Label className="text-xs mb-1 block">Header</Label>
-                <Input 
-                  value={config.text_sections?.header || ''} 
-                  onChange={(e) => updateTextSection('header', e.target.value)}
-                  className="compact-input w-full"
-                  placeholder="Header text"
-                />
-              </div>
-              <div>
-                <Label className="text-xs mb-1 block">Sub Header</Label>
-                <Input 
-                  value={config.text_sections?.subHeader || ''} 
-                  onChange={(e) => updateTextSection('subHeader', e.target.value)}
-                  className="compact-input w-full"
-                  placeholder="Sub header text"
-                />
-              </div>
-              <div>
-                <Label className="text-xs mb-1 block">Footer</Label>
-                <Input 
-                  value={config.text_sections?.footer || ''} 
-                  onChange={(e) => updateTextSection('footer', e.target.value)}
-                  className="compact-input w-full"
-                  placeholder="Footer text"
-                />
-              </div>
-              <div>
-                <Label className="text-xs mb-1 block">Sub Footer</Label>
-                <Input 
-                  value={config.text_sections?.subFooter || ''} 
-                  onChange={(e) => updateTextSection('subFooter', e.target.value)}
-                  className="compact-input w-full"
-                  placeholder="Sub footer text"
-                />
-              </div>
+              {['title', 'header', 'subHeader', 'footer', 'subFooter'].map((section) => (
+                <div key={section}>
+                  <Label className="text-xs mb-1 block capitalize">{section.replace(/([A-Z])/g, ' $1')}</Label>
+                  <Input 
+                    value={config.text_sections?.[section] || ''} 
+                    onChange={(e) => updateTextSection(section, e.target.value)}
+                    className="compact-input w-full"
+                    placeholder={`${section} text`}
+                  />
+                </div>
+              ))}
             </div>
           </PopoverContent>
         </Popover>
@@ -582,34 +871,15 @@ export default function EditorNew() {
           <PopoverContent className="popover-panel w-64">
             <div className="section-header">Glow Effects</div>
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs">Buttons</Label>
-                <Switch
-                  checked={config.glow_effects?.buttons || false}
-                  onCheckedChange={(checked) => updateConfig('glow_effects', { ...config.glow_effects, buttons: checked })}
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label className="text-xs">Text</Label>
-                <Switch
-                  checked={config.glow_effects?.text || false}
-                  onCheckedChange={(checked) => updateConfig('glow_effects', { ...config.glow_effects, text: checked })}
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label className="text-xs">Images</Label>
-                <Switch
-                  checked={config.glow_effects?.images || false}
-                  onCheckedChange={(checked) => updateConfig('glow_effects', { ...config.glow_effects, images: checked })}
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label className="text-xs">Video</Label>
-                <Switch
-                  checked={config.glow_effects?.video || false}
-                  onCheckedChange={(checked) => updateConfig('glow_effects', { ...config.glow_effects, video: checked })}
-                />
-              </div>
+              {['buttons', 'text', 'images', 'video'].map((item) => (
+                <div key={item} className="flex items-center justify-between">
+                  <Label className="text-xs capitalize">{item}</Label>
+                  <Switch
+                    checked={config.glow_effects?.[item] || false}
+                    onCheckedChange={(checked) => updateConfig('glow_effects', { ...config.glow_effects, [item]: checked })}
+                  />
+                </div>
+              ))}
               <div>
                 <Label className="text-xs mb-2 block">Intensity: {config.glow_effects?.intensity || 20}px</Label>
                 <input
@@ -655,32 +925,200 @@ export default function EditorNew() {
                 />
               </div>
             </div>
+            <div className="cyber-divider" />
+            <div className="section-header">Player Frame Style</div>
+            <Select value={config.player_frame} onValueChange={(value) => updateConfig('player_frame', value)}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(playerFrameStyles).map(([key, style]) => (
+                  <SelectItem key={key} value={key}>{style.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </PopoverContent>
+        </Popover>
+
+        {/* Pages */}
+        <Popover open={showPagesPanel} onOpenChange={setShowPagesPanel}>
+          <PopoverTrigger asChild>
+            <button className="icon-btn">
+              <Layers className="w-4 h-4" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="popover-panel w-80">
+            <div className="section-header">Pages & Transitions</div>
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {(config.pages || []).map((page, idx) => (
+                <div key={page.id} className="flex items-center gap-2 p-2 bg-black/30 rounded">
+                  <span className="text-xs flex-1">{page.title}</span>
+                  <button 
+                    className="icon-btn w-6 h-6"
+                    onClick={() => setRenameDialog({ open: true, type: 'page', index: idx, value: page.title })}
+                  >
+                    <Edit2 className="w-3 h-3" />
+                  </button>
+                  <button 
+                    className="icon-btn w-6 h-6 hover:bg-red-500/20"
+                    onClick={() => deletePage(page.id)}
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <Button size="sm" variant="outline" className="w-full mt-2 compact-btn" onClick={addPage}>
+              <Plus className="w-3 h-3 mr-1" /> Add Page
+            </Button>
+            
+            <div className="cyber-divider" />
+            <div className="section-header">Page Transition</div>
+            <Select 
+              value={config.page_transition?.type || 'fade'} 
+              onValueChange={(value) => updateConfig('page_transition', { ...config.page_transition, type: value })}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {pageTransitions.map(t => (
+                  <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="mt-2">
+              <Label className="text-xs">Duration: {config.page_transition?.duration || 300}ms</Label>
+              <input
+                type="range"
+                min="100"
+                max="1000"
+                step="50"
+                value={config.page_transition?.duration || 300}
+                onChange={(e) => updateConfig('page_transition', { ...config.page_transition, duration: parseInt(e.target.value) })}
+                className="w-full"
+              />
+            </div>
+            
+            <div className="cyber-divider" />
+            <div className="section-header">Navigation Options</div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Swipe Navigation</Label>
+                <Switch
+                  checked={config.page_navigation?.swipeEnabled ?? true}
+                  onCheckedChange={(checked) => updateConfig('page_navigation', { ...config.page_navigation, swipeEnabled: checked })}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Click Navigation</Label>
+                <Switch
+                  checked={config.page_navigation?.clickEnabled ?? true}
+                  onCheckedChange={(checked) => updateConfig('page_navigation', { ...config.page_navigation, clickEnabled: checked })}
+                />
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        {/* Slideshow Settings */}
+        <Popover open={showSlideshowSettings} onOpenChange={setShowSlideshowSettings}>
+          <PopoverTrigger asChild>
+            <button className="icon-btn">
+              <Settings2 className="w-4 h-4" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="popover-panel w-72">
+            <div className="section-header">Slideshow Settings</div>
+            <div className="space-y-3">
+              <div>
+                <Label className="text-xs mb-1 block">Transition Effect</Label>
+                <Select 
+                  value={config.slideshow_settings?.transition || 'fade'} 
+                  onValueChange={(value) => updateConfig('slideshow_settings', { ...config.slideshow_settings, transition: value })}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {slideshowTransitions.map(t => (
+                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs mb-1 block">Duration: {(config.slideshow_settings?.duration || 5000) / 1000}s</Label>
+                <input
+                  type="range"
+                  min="1000"
+                  max="15000"
+                  step="500"
+                  value={config.slideshow_settings?.duration || 5000}
+                  onChange={(e) => updateConfig('slideshow_settings', { ...config.slideshow_settings, duration: parseInt(e.target.value) })}
+                  className="w-full"
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Auto Play</Label>
+                <Switch
+                  checked={config.slideshow_settings?.autoPlay ?? true}
+                  onCheckedChange={(checked) => updateConfig('slideshow_settings', { ...config.slideshow_settings, autoPlay: checked })}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Loop</Label>
+                <Switch
+                  checked={config.slideshow_settings?.loop ?? true}
+                  onCheckedChange={(checked) => updateConfig('slideshow_settings', { ...config.slideshow_settings, loop: checked })}
+                />
+              </div>
+            </div>
           </PopoverContent>
         </Popover>
 
         <div className="cyber-divider" style={{ width: 1, height: 32, margin: 0 }} />
 
         {/* Device Selector */}
-        <div className="flex gap-1">
-          <button
-            className={`icon-btn ${selectedDevice === 'desktop' ? 'active' : ''}`}
-            onClick={() => setSelectedDevice('desktop')}
-          >
-            <Monitor className="w-4 h-4" />
-          </button>
-          <button
-            className={`icon-btn ${selectedDevice === 'tablet' ? 'active' : ''}`}
-            onClick={() => setSelectedDevice('tablet')}
-          >
-            <Tablet className="w-4 h-4" />
-          </button>
-          <button
-            className={`icon-btn ${selectedDevice === 'mobile' ? 'active' : ''}`}
-            onClick={() => setSelectedDevice('mobile')}
-          >
-            <Smartphone className="w-4 h-4" />
-          </button>
-        </div>
+        <Popover open={showDeviceSelector} onOpenChange={setShowDeviceSelector}>
+          <PopoverTrigger asChild>
+            <button className="icon-btn flex items-center gap-1 w-auto px-2">
+              <Monitor className="w-4 h-4" />
+              <ChevronDown className="w-3 h-3" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="popover-panel w-72 max-h-96 overflow-y-auto">
+            <div className="section-header">Device Preview</div>
+            {Object.entries(
+              Object.entries(devicePresets).reduce((acc, [key, val]) => {
+                const category = key.includes('iphone') ? 'iPhone' :
+                               key.includes('ipad') ? 'iPad' :
+                               key.includes('pixel') ? 'Pixel' :
+                               key.includes('galaxy') ? 'Galaxy' :
+                               key.includes('surface') ? 'Surface' :
+                               key.includes('nest') ? 'Nest' : 'Other';
+                if (!acc[category]) acc[category] = [];
+                acc[category].push([key, val]);
+                return acc;
+              }, {})
+            ).map(([category, devices]) => (
+              <div key={category} className="mb-3">
+                <div className="text-xs text-[#00ffc8]/60 uppercase mb-1">{category}</div>
+                {devices.map(([key, device]) => (
+                  <button
+                    key={key}
+                    className={`w-full text-left px-2 py-1 text-xs rounded mb-1 transition-colors ${
+                      selectedDevice === key ? 'bg-[#00ffc8]/20 text-[#00ffc8]' : 'hover:bg-white/5'
+                    }`}
+                    onClick={() => { setSelectedDevice(key); setShowDeviceSelector(false); }}
+                  >
+                    {device.name} <span className="text-[#00c8ff]/50">({device.width}×{device.height})</span>
+                  </button>
+                ))}
+              </div>
+            ))}
+          </PopoverContent>
+        </Popover>
 
         <div className="cyber-divider" style={{ width: 1, height: 32, margin: 0 }} />
 
@@ -717,7 +1155,7 @@ export default function EditorNew() {
             <Tabs defaultValue="templates" className="w-full">
               <TabsList className="w-full grid grid-cols-4 mb-3 bg-transparent border border-[#00ffc8]/20">
                 <TabsTrigger value="templates" className="text-xs data-[state=active]:bg-[#00ffc8]/20">
-                  <LayoutTemplate className="w-3 h-3" />
+                  <Layers className="w-3 h-3" />
                 </TabsTrigger>
                 <TabsTrigger value="images" className="text-xs data-[state=active]:bg-[#00ffc8]/20">
                   <Image className="w-3 h-3" />
@@ -732,10 +1170,9 @@ export default function EditorNew() {
 
               <TabsContent value="templates" className="space-y-2 mt-0">
                 <div className="section-header">
-                  <LayoutTemplate className="w-3 h-3" />
                   Templates ({layoutTemplates.length})
                 </div>
-                <div className="space-y-2 max-h-[calc(100vh-320px)] overflow-y-auto pr-1" style={{ scrollbarWidth: 'none' }}>
+                <div className="space-y-2 max-h-[calc(100vh-350px)] overflow-y-auto pr-1" style={{ scrollbarWidth: 'none' }}>
                   {layoutTemplates.map((template) => (
                     <div
                       key={template.id}
@@ -756,125 +1193,75 @@ export default function EditorNew() {
               </TabsContent>
 
               <TabsContent value="images" className="space-y-2 mt-0">
-                <div className="section-header">
-                  <Image className="w-3 h-3" />
-                  Images
-                </div>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handleImageUpload(e, 'background')}
-                  className="hidden"
-                  id="bg-upload"
-                />
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="w-full compact-btn"
-                  onClick={() => document.getElementById('bg-upload').click()}
-                >
+                <div className="section-header">Images</div>
+                <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'background')} className="hidden" id="bg-upload" />
+                <Button size="sm" variant="outline" className="w-full compact-btn" onClick={() => document.getElementById('bg-upload').click()}>
                   Upload Background
                 </Button>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handleImageUpload(e, 'gallery')}
-                  className="hidden"
-                  id="gallery-upload"
-                />
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="w-full compact-btn"
-                  onClick={() => document.getElementById('gallery-upload').click()}
-                >
-                  Upload Gallery Image
+                <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'gallery')} className="hidden" id="gallery-upload" />
+                <Button size="sm" variant="outline" className="w-full compact-btn" onClick={() => document.getElementById('gallery-upload').click()}>
+                  Upload Image
                 </Button>
                 <div className="space-y-1 mt-3">
-                  {(config.background_images || []).map((img, idx) => (
-                    <div key={idx} className="list-item">
-                      <span className="text-xs truncate">{img.name}</span>
-                    </div>
-                  ))}
                   {(config.gallery_images || []).map((img, idx) => (
-                    <div key={idx} className="list-item">
-                      <span className="text-xs truncate">{img.name}</span>
+                    <div key={idx} className="list-item flex items-center justify-between">
+                      <span className="text-xs truncate flex-1">{img.name}</span>
+                      <button 
+                        className="icon-btn w-5 h-5"
+                        onClick={(e) => { e.stopPropagation(); setRenameDialog({ open: true, type: 'image', index: idx, value: img.name }); }}
+                      >
+                        <Edit2 className="w-3 h-3" />
+                      </button>
                     </div>
                   ))}
                 </div>
               </TabsContent>
 
               <TabsContent value="video" className="space-y-2 mt-0">
-                <div className="section-header">
-                  <Video className="w-3 h-3" />
-                  Videos
-                </div>
-                <input
-                  type="file"
-                  accept="video/*"
-                  onChange={handleVideoUpload}
-                  className="hidden"
-                  id="video-upload"
-                />
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="w-full compact-btn"
-                  onClick={() => document.getElementById('video-upload').click()}
-                >
+                <div className="section-header">Videos</div>
+                <input type="file" accept="video/*" onChange={handleVideoUpload} className="hidden" id="video-upload" />
+                <Button size="sm" variant="outline" className="w-full compact-btn" onClick={() => document.getElementById('video-upload').click()}>
                   Upload Video
                 </Button>
                 <div className="space-y-1 mt-3">
                   {(config.video_tracks || []).map((video, idx) => (
-                    <div key={idx} className="list-item">
-                      <div className="flex items-center gap-2">
+                    <div key={idx} className="list-item flex items-center justify-between">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
                         <Video className="w-3 h-3 text-[#00ffc8] flex-shrink-0" />
                         <span className="text-xs truncate">{video.title}</span>
                       </div>
+                      <button 
+                        className="icon-btn w-5 h-5"
+                        onClick={(e) => { e.stopPropagation(); setRenameDialog({ open: true, type: 'video', index: idx, value: video.title }); }}
+                      >
+                        <Edit2 className="w-3 h-3" />
+                      </button>
                     </div>
                   ))}
-                  {(config.video_tracks || []).length > 1 && (
-                    <div className="status-badge mt-2">
-                      Playlist Enabled
-                    </div>
-                  )}
                 </div>
               </TabsContent>
 
               <TabsContent value="audio" className="space-y-2 mt-0">
-                <div className="section-header">
-                  <Music className="w-3 h-3" />
-                  Audio
-                </div>
-                <input
-                  type="file"
-                  accept="audio/*"
-                  onChange={handleAudioUpload}
-                  className="hidden"
-                  id="audio-upload"
-                />
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="w-full compact-btn"
-                  onClick={() => document.getElementById('audio-upload').click()}
-                >
+                <div className="section-header">Audio</div>
+                <input type="file" accept="audio/*" onChange={handleAudioUpload} className="hidden" id="audio-upload" />
+                <Button size="sm" variant="outline" className="w-full compact-btn" onClick={() => document.getElementById('audio-upload').click()}>
                   Upload Audio
                 </Button>
                 <div className="space-y-1 mt-3">
                   {(config.audio_tracks || []).map((audio, idx) => (
-                    <div key={idx} className="list-item">
-                      <div className="flex items-center gap-2">
+                    <div key={idx} className="list-item flex items-center justify-between">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
                         <Music className="w-3 h-3 text-[#00ffc8] flex-shrink-0" />
                         <span className="text-xs truncate">{audio.title}</span>
                       </div>
+                      <button 
+                        className="icon-btn w-5 h-5"
+                        onClick={(e) => { e.stopPropagation(); setRenameDialog({ open: true, type: 'audio', index: idx, value: audio.title }); }}
+                      >
+                        <Edit2 className="w-3 h-3" />
+                      </button>
                     </div>
                   ))}
-                  {(config.audio_tracks || []).length > 1 && (
-                    <div className="status-badge mt-2">
-                      Playlist Enabled
-                    </div>
-                  )}
                 </div>
               </TabsContent>
             </Tabs>
@@ -882,46 +1269,55 @@ export default function EditorNew() {
             <div className="cyber-divider" />
             
             <div className="section-header">
-              <Layers className="w-3 h-3" />
               Elements on Canvas
             </div>
-            <p className="text-xs text-muted-foreground">
-              {config.layout?.elements?.length || 0} elements
+            <p className="text-xs text-muted-foreground mb-2">
+              {config.layout?.elements?.length || 0} elements • Double-click to edit
             </p>
-            {(config.layout?.elements || []).map((el, idx) => (
-              <div key={el.id} className="list-item mt-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium">{el.label || el.type}</span>
-                  <span className="text-xs text-[#00c8ff]/60">
-                    {Math.round(el.x)}, {Math.round(el.y)}
-                  </span>
+            <div className="space-y-1 max-h-[150px] overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
+              {(config.layout?.elements || []).map((el) => (
+                <div 
+                  key={el.id} 
+                  className="list-item cursor-pointer"
+                  onDoubleClick={() => handleElementDoubleClick(el)}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium">{el.label || el.type}</span>
+                    <span className="text-xs text-[#00c8ff]/60">
+                      {Math.round(el.x)}, {Math.round(el.y)}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
 
         {/* Canvas */}
         <div className="editor-canvas cyber-grid" ref={canvasRef}>
-          <div className="canvas-workspace">
+          <div className="canvas-workspace" style={{ padding: 0 }}>
             {viewMode === 'interactive' ? (
-              <div className="w-full h-full p-4">
-                <InteractiveCanvas config={config} updateConfig={updateConfig} />
+              <div className="w-full h-full">
+                <InteractiveCanvas 
+                  config={config} 
+                  updateConfig={updateConfig}
+                  onElementDoubleClick={handleElementDoubleClick}
+                />
               </div>
             ) : (
-              <div className="w-full h-full flex items-center justify-center p-4">
+              <div className="w-full h-full flex items-center justify-center">
                 <div
-                  className="glass"
+                  className="glass relative"
                   style={{
-                    width: selectedDevice === 'mobile' ? 'min(375px, 90%)' : selectedDevice === 'tablet' ? 'min(768px, 85%)' : '90%',
-                    height: selectedDevice === 'mobile' ? 'min(667px, 85%)' : selectedDevice === 'tablet' ? 'min(1024px, 85%)' : '85%',
+                    width: getDeviceDimensions().width,
+                    height: getDeviceDimensions().height,
                     borderRadius: 12,
-                    padding: selectedDevice === 'mobile' ? 12 : 20,
-                    maxWidth: '100%',
-                    maxHeight: '100%',
                     overflow: 'hidden'
                   }}
                 >
+                  <div className="absolute top-2 left-2 text-[10px] text-[#00ffc8]/50 z-10">
+                    {devicePresets[selectedDevice]?.name} ({devicePresets[selectedDevice]?.width}×{devicePresets[selectedDevice]?.height})
+                  </div>
                   <div style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
                     <PreviewCanvas key={previewKey} config={config} />
                   </div>
@@ -931,6 +1327,186 @@ export default function EditorNew() {
           </div>
         </div>
       </div>
+
+      {/* Save Dialog */}
+      <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+        <DialogContent className="bg-[#0a0a0a] border-[#00ffc8]/30">
+          <DialogHeader>
+            <DialogTitle className="text-[#00ffc8]">Save Project</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label className="text-xs">Project Name</Label>
+              <Input 
+                value={presetName} 
+                onChange={(e) => setPresetName(e.target.value)}
+                placeholder="Enter project name"
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSaveDialog(false)}>Cancel</Button>
+            <Button onClick={handleSaveProject} disabled={loading}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Load Dialog */}
+      <Dialog open={showLoadDialog} onOpenChange={setShowLoadDialog}>
+        <DialogContent className="bg-[#0a0a0a] border-[#00ffc8]/30 max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-[#00ffc8]">Open Project</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 py-4 max-h-[300px] overflow-y-auto">
+            {savedPresets.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-4">No saved projects</p>
+            ) : (
+              savedPresets.map((preset) => (
+                <div 
+                  key={preset.id} 
+                  className="flex items-center justify-between p-3 bg-black/30 rounded-lg border border-[#00ffc8]/10 hover:border-[#00ffc8]/30 cursor-pointer"
+                  onClick={() => handleLoadProject(preset)}
+                >
+                  <div>
+                    <p className="text-sm font-medium">{preset.name}</p>
+                    <p className="text-xs text-[#00c8ff]/50">
+                      {new Date(preset.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <button 
+                    className="icon-btn w-6 h-6 hover:bg-red-500/20"
+                    onClick={(e) => { e.stopPropagation(); handleDeleteProject(preset.id); }}
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Element Editor Dialog */}
+      <Dialog open={showElementEditor} onOpenChange={setShowElementEditor}>
+        <DialogContent className="bg-[#0a0a0a] border-[#00ffc8]/30">
+          <DialogHeader>
+            <DialogTitle className="text-[#00ffc8]">Edit Element</DialogTitle>
+          </DialogHeader>
+          {editingElement && (
+            <div className="space-y-4 py-4">
+              <div>
+                <Label className="text-xs">Label</Label>
+                <Input 
+                  value={editingElement.label || ''} 
+                  onChange={(e) => {
+                    setEditingElement({ ...editingElement, label: e.target.value });
+                    updateElement(editingElement.id, { label: e.target.value });
+                  }}
+                  className="mt-1"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs">X Position</Label>
+                  <Input 
+                    type="number"
+                    value={Math.round(editingElement.x)} 
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value) || 0;
+                      setEditingElement({ ...editingElement, x: val });
+                      updateElement(editingElement.id, { x: val });
+                    }}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Y Position</Label>
+                  <Input 
+                    type="number"
+                    value={Math.round(editingElement.y)} 
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value) || 0;
+                      setEditingElement({ ...editingElement, y: val });
+                      updateElement(editingElement.id, { y: val });
+                    }}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs">Width</Label>
+                  <Input 
+                    type="number"
+                    value={Math.round(editingElement.width)} 
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value) || 50;
+                      setEditingElement({ ...editingElement, width: val });
+                      updateElement(editingElement.id, { width: val });
+                    }}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Height</Label>
+                  <Input 
+                    type="number"
+                    value={Math.round(editingElement.height)} 
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value) || 30;
+                      setEditingElement({ ...editingElement, height: val });
+                      updateElement(editingElement.id, { height: val });
+                    }}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs">Z-Index (Layer)</Label>
+                <Input 
+                  type="number"
+                  value={editingElement.zIndex || 0} 
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value) || 0;
+                    setEditingElement({ ...editingElement, zIndex: val });
+                    updateElement(editingElement.id, { zIndex: val });
+                  }}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setShowElementEditor(false)}>Done</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rename Dialog */}
+      <Dialog open={renameDialog.open} onOpenChange={(open) => setRenameDialog({ ...renameDialog, open })}>
+        <DialogContent className="bg-[#0a0a0a] border-[#00ffc8]/30">
+          <DialogHeader>
+            <DialogTitle className="text-[#00ffc8]">Rename</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <Input 
+              value={renameDialog.value} 
+              onChange={(e) => setRenameDialog({ ...renameDialog, value: e.target.value })}
+              placeholder="Enter new name"
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenameDialog({ open: false, type: '', index: -1, value: '' })}>
+              Cancel
+            </Button>
+            <Button onClick={() => handleRename(renameDialog.type, renameDialog.index, renameDialog.value)}>
+              Rename
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {loading && (
         <div className="loading-overlay">
