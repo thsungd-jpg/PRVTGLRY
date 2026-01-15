@@ -21,7 +21,8 @@ import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL
+  || (typeof window !== 'undefined' ? `http://${window.location.hostname}:8000` : 'http://localhost:8000');
 const API = `${BACKEND_URL}/api`;
 
 const defaultConfig = {

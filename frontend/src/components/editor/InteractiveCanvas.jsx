@@ -8,7 +8,7 @@ import {
   Edit2, Sparkles, Play, Pause
 } from 'lucide-react';
 
-export default function InteractiveCanvas({ config, updateConfig, onElementDoubleClick, onGlowEdit, deviceDimensions }) {
+export default function InteractiveCanvas({ config, updateConfig, onElementDoubleClick, onGlowEdit, deviceDimensions, pageNavigation, onNavigateNext, onNavigatePrev }) {
   const [selectedElement, setSelectedElement] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
@@ -21,12 +21,14 @@ export default function InteractiveCanvas({ config, updateConfig, onElementDoubl
   const [editValue, setEditValue] = useState('');
   const canvasRef = useRef(null);
   const inputRef = useRef(null);
+  const touchStartRef = useRef(null);
 
   const layoutElements = config.layout?.elements || [];
   const snapEnabled = config.layout?.snapEnabled || false;
   const snapGrid = config.layout?.snapGrid || 10;
   const textSections = config.text_sections || {};
   const playerFrame = config.player_frame || 'glassmorphism';
+  const isAllSelected = selectedElement === 'all';
 
   // Player frame styles
   const frameStyles = {
@@ -49,6 +51,7 @@ export default function InteractiveCanvas({ config, updateConfig, onElementDoubl
     const rect = canvasRef.current.getBoundingClientRect();
     return { width: rect.width, height: rect.height };
   };
+
 
   // Get text content for element
   const getElementContent = (element) => {
@@ -145,7 +148,7 @@ export default function InteractiveCanvas({ config, updateConfig, onElementDoubl
   const handleMouseMove = useCallback((e) => {
     const rect = canvasRef.current?.getBoundingClientRect();
     
-    if (isDragging && selectedElement && !isResizing) {
+    if (isDragging && selectedElement && !isResizing && !isAllSelected) {
       const element = layoutElements.find(el => el.id === selectedElement);
       if (!element || element.locked) return;
 
@@ -161,7 +164,7 @@ export default function InteractiveCanvas({ config, updateConfig, onElementDoubl
       updateConfig('layout', { ...config.layout, elements: updatedElements });
     }
 
-    if (isResizing && selectedElement && resizeHandle) {
+    if (isResizing && selectedElement && resizeHandle && !isAllSelected) {
       const element = layoutElements.find(el => el.id === selectedElement);
       if (!element || element.locked) return;
 
@@ -208,11 +211,42 @@ export default function InteractiveCanvas({ config, updateConfig, onElementDoubl
   };
 
   const handleCanvasClick = (e) => {
-    if (e.target === canvasRef.current || e.target.classList.contains('canvas-bg')) {
+    const isWithinCanvas = !!canvasRef.current && canvasRef.current.contains(e.target);
+    const isElementClick = !!e.target.closest('[data-testid^="canvas-element-"]');
+    const isBackgroundClick = isWithinCanvas && !isElementClick;
+    if (isBackgroundClick) {
       setSelectedElement(null);
       setContextMenu(null);
       if (editingText) saveEditedText();
+      if (pageNavigation?.clickEnabled && !isDragging && !isResizing && !editingText) {
+        const rect = canvasRef.current?.getBoundingClientRect();
+        const clickX = rect ? e.clientX - rect.left : e.clientX;
+        const midpoint = rect ? rect.width / 2 : 0;
+        if (rect && clickX >= midpoint) {
+          onNavigatePrev?.();
+        } else {
+          onNavigateNext?.();
+        }
+      }
     }
+  };
+
+  const handleTouchStart = (e) => {
+    if (!pageNavigation?.swipeEnabled) return;
+    touchStartRef.current = e.changedTouches?.[0]?.screenX ?? null;
+  };
+
+  const handleTouchEnd = (e) => {
+    if (!pageNavigation?.swipeEnabled) return;
+    const startX = touchStartRef.current;
+    const endX = e.changedTouches?.[0]?.screenX ?? null;
+    if (startX == null || endX == null) return;
+    const diff = startX - endX;
+    if (Math.abs(diff) > 50) {
+      if (diff > 0) onNavigateNext?.();
+      else onNavigatePrev?.();
+    }
+    touchStartRef.current = null;
   };
 
   // Context menu actions
@@ -239,6 +273,105 @@ export default function InteractiveCanvas({ config, updateConfig, onElementDoubl
     const newElement = { ...contextMenu.element, id: Date.now() + Math.random(), x: contextMenu.element.x + 20, y: contextMenu.element.y + 20 };
     updateConfig('layout', { ...config.layout, elements: [...layoutElements, newElement] });
     setContextMenu(null);
+  };
+
+  const getSelectedElement = () => {
+    if (!selectedElement || isAllSelected) return null;
+    return layoutElements.find(el => el.id === selectedElement);
+  };
+
+
+  const deleteSelectedElement = () => {
+    if (!selectedElement) return;
+    const updatedElements = isAllSelected ? [] : layoutElements.filter(el => el.id !== selectedElement);
+    updateConfig('layout', { ...config.layout, elements: updatedElements });
+    setSelectedElement(null);
+  };
+
+  const copySelectedElement = () => {
+    if (isAllSelected) {
+      setClipboard(layoutElements.map(el => ({ ...el })));
+      return;
+    }
+    const element = getSelectedElement();
+    if (!element) return;
+    setClipboard({ ...element });
+  };
+
+  const pasteClipboardElement = () => {
+    if (!clipboard) return;
+    if (Array.isArray(clipboard)) {
+      const newElements = clipboard.map(el => ({
+        ...el,
+        id: Date.now() + Math.random(),
+        x: el.x + 20,
+        y: el.y + 20
+      }));
+      updateConfig('layout', { ...config.layout, elements: [...layoutElements, ...newElements] });
+      setSelectedElement('all');
+      return;
+    }
+    const newElement = { ...clipboard, id: Date.now() + Math.random(), x: clipboard.x + 20, y: clipboard.y + 20 };
+    updateConfig('layout', { ...config.layout, elements: [...layoutElements, newElement] });
+    setSelectedElement(newElement.id);
+  };
+
+  const duplicateSelectedElement = () => {
+    if (isAllSelected) {
+      const newElements = layoutElements.map(el => ({
+        ...el,
+        id: Date.now() + Math.random(),
+        x: el.x + 20,
+        y: el.y + 20
+      }));
+      updateConfig('layout', { ...config.layout, elements: [...layoutElements, ...newElements] });
+      setSelectedElement('all');
+      return;
+    }
+    const element = getSelectedElement();
+    if (!element) return;
+    const newElement = { ...element, id: Date.now() + Math.random(), x: element.x + 20, y: element.y + 20 };
+    updateConfig('layout', { ...config.layout, elements: [...layoutElements, newElement] });
+    setSelectedElement(newElement.id);
+  };
+
+  const nudgeSelectedElement = (dx, dy) => {
+    const bounds = getCanvasBounds();
+
+    if (isAllSelected) {
+      if (layoutElements.length === 0) return;
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      layoutElements.forEach(el => {
+        minX = Math.min(minX, el.x);
+        minY = Math.min(minY, el.y);
+        maxX = Math.max(maxX, el.x + el.width);
+        maxY = Math.max(maxY, el.y + el.height);
+      });
+      const nextMinX = minX + dx;
+      const nextMinY = minY + dy;
+      const nextMaxX = maxX + dx;
+      const nextMaxY = maxY + dy;
+      const clampedDx = Math.min(Math.max(dx, -nextMinX), bounds.width - nextMaxX);
+      const clampedDy = Math.min(Math.max(dy, -nextMinY), bounds.height - nextMaxY);
+      const updatedElements = layoutElements.map(el => ({
+        ...el,
+        x: snapToGrid(el.x + clampedDx),
+        y: snapToGrid(el.y + clampedDy)
+      }));
+      updateConfig('layout', { ...config.layout, elements: updatedElements });
+      return;
+    }
+
+    const element = getSelectedElement();
+    if (!element) return;
+    const nextX = snapToGrid(element.x + dx);
+    const nextY = snapToGrid(element.y + dy);
+    const clampedX = Math.max(0, Math.min(nextX, bounds.width - element.width));
+    const clampedY = Math.max(0, Math.min(nextY, bounds.height - element.height));
+    const updatedElements = layoutElements.map(el =>
+      el.id === element.id ? { ...el, x: clampedX, y: clampedY } : el
+    );
+    updateConfig('layout', { ...config.layout, elements: updatedElements });
   };
 
   const alignElement = (alignment) => {
@@ -319,17 +452,60 @@ export default function InteractiveCanvas({ config, updateConfig, onElementDoubl
 
   useEffect(() => {
     const handleKeyDown = (e) => {
+      const target = e.target;
+      const isTypingTarget =
+        target &&
+        ((target.tagName === 'INPUT') || (target.tagName === 'TEXTAREA') || target.isContentEditable);
+
       if (e.key === 'Escape') { setContextMenu(null); if (editingText) saveEditedText(); }
       if (e.key === 'Enter' && editingText) saveEditedText();
-      if (e.key === 'Delete' && selectedElement && !editingText) {
-        const updatedElements = layoutElements.filter(el => el.id !== selectedElement);
-        updateConfig('layout', { ...config.layout, elements: updatedElements });
-        setSelectedElement(null);
+
+      if (editingText || isTypingTarget) return;
+
+      const isMod = e.metaKey || e.ctrlKey;
+
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedElement) {
+        e.preventDefault();
+        deleteSelectedElement();
+        return;
       }
+
+      if (isMod && e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        if (layoutElements.length > 0) {
+          setSelectedElement('all');
+          setContextMenu(null);
+        }
+        return;
+      }
+
+      if (isMod && e.key.toLowerCase() === 'c') {
+        e.preventDefault();
+        copySelectedElement();
+        return;
+      }
+
+      if (isMod && e.key.toLowerCase() === 'v') {
+        e.preventDefault();
+        pasteClipboardElement();
+        return;
+      }
+
+      if (isMod && e.key.toLowerCase() === 'd') {
+        e.preventDefault();
+        duplicateSelectedElement();
+        return;
+      }
+
+      const step = isMod ? 1 : 10;
+      if (e.key === 'ArrowLeft') { e.preventDefault(); nudgeSelectedElement(-step, 0); }
+      if (e.key === 'ArrowRight') { e.preventDefault(); nudgeSelectedElement(step, 0); }
+      if (e.key === 'ArrowUp') { e.preventDefault(); nudgeSelectedElement(0, -step); }
+      if (e.key === 'ArrowDown') { e.preventDefault(); nudgeSelectedElement(0, step); }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedElement, editingText, layoutElements, config.layout, updateConfig]);
+  }, [selectedElement, editingText, layoutElements, config.layout, updateConfig, clipboard]);
 
   // Render element content
   const renderElementContent = (element) => {
@@ -450,6 +626,8 @@ export default function InteractiveCanvas({ config, updateConfig, onElementDoubl
         borderRadius: '8px'
       }}
       onClick={handleCanvasClick}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
       data-testid="interactive-canvas"
     >
       {/* Background images */}
@@ -469,7 +647,7 @@ export default function InteractiveCanvas({ config, updateConfig, onElementDoubl
           className={cn(
             "absolute cursor-move transition-shadow",
             element.locked && "cursor-not-allowed",
-            selectedElement === element.id && "ring-2 ring-[#00ffc8] ring-offset-2 ring-offset-transparent"
+            (selectedElement === element.id || isAllSelected) && "ring-2 ring-[#00ffc8] ring-offset-2 ring-offset-transparent"
           )}
           style={{
             left: element.x,
@@ -540,7 +718,7 @@ export default function InteractiveCanvas({ config, updateConfig, onElementDoubl
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center">
             <div className="text-2xl font-bold neon-text mb-2" style={{ fontFamily: config.global_font }}>
-              {config.app_name || 'My PWA App'}
+              PRVT
             </div>
             <p className="text-xs text-white/50">Apply a template or add elements</p>
           </div>

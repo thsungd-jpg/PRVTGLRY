@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Save, Download, Play, Layers, Palette, Sparkles, Grid3x3, Monitor, Menu, X, Image, Video, Music, Type, FolderOpen, Plus, Trash2, Edit2, Settings2, ChevronDown, ChevronRight, Copy, Search } from 'lucide-react';
+import { Save, Download, Play, Layers, Palette, Sparkles, Grid3x3, Monitor, Menu, X, Image, Video, Music, Type, FolderOpen, Plus, Trash2, Edit2, Settings2, ChevronDown, ChevronRight, Copy, Search, Scissors, ClipboardPaste } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,7 +15,8 @@ import PreviewCanvas from '@/components/editor/PreviewCanvas';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL
+  || (typeof window !== 'undefined' ? `http://${window.location.hostname}:8000` : 'http://localhost:8000');
 const API = `${BACKEND_URL}/api`;
 
 // Popular Google Fonts - categorized
@@ -179,6 +180,8 @@ export default function EditorNew() {
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showLoadDialog, setShowLoadDialog] = useState(false);
   const [presetName, setPresetName] = useState('');
+  const [activePresetId, setActivePresetId] = useState(null);
+  const [activePresetName, setActivePresetName] = useState('');
   const [editingElement, setEditingElement] = useState(null);
   const [showElementEditor, setShowElementEditor] = useState(false);
   const [showDeviceSelector, setShowDeviceSelector] = useState(false);
@@ -191,10 +194,49 @@ export default function EditorNew() {
   const [showGlowEditor, setShowGlowEditor] = useState(false);
   const [glowEditElement, setGlowEditElement] = useState(null);
   const [sidebarContextMenu, setSidebarContextMenu] = useState(null);
+  const [pageContextMenu, setPageContextMenu] = useState(null);
   const [viewMode, setViewMode] = useState('edit'); // Always edit mode by default
   const canvasRef = useRef(null);
+  const layoutHistoryRef = useRef([]);
+  const isUndoingLayoutRef = useRef(false);
+  const prevLayoutRef = useRef([]);
+  const pageClipboardRef = useRef(null);
+  const autoSaveTimerRef = useRef(null);
 
   useEffect(() => { loadPresets(); loadGoogleFonts(); }, []);
+
+  useEffect(() => {
+    const prev = prevLayoutRef.current;
+    const curr = config.layout?.elements || [];
+    const prevSerialized = JSON.stringify(prev);
+    const currSerialized = JSON.stringify(curr);
+    if (!isUndoingLayoutRef.current && prevSerialized !== currSerialized) {
+      layoutHistoryRef.current.push(JSON.parse(prevSerialized || '[]'));
+      if (layoutHistoryRef.current.length > 50) layoutHistoryRef.current.shift();
+    }
+    prevLayoutRef.current = curr;
+    if (isUndoingLayoutRef.current) {
+      isUndoingLayoutRef.current = false;
+    }
+  }, [config.layout?.elements]);
+
+  useEffect(() => {
+    setConfig(prev => {
+      const pages = prev.pages || [];
+      if (!pages.length) return prev;
+      const currentPage = pages.find(p => p.id === prev.currentPageId) || pages[0];
+      if (!currentPage) return prev;
+      const currentElements = prev.layout?.elements || [];
+      const currentSerialized = JSON.stringify(currentPage.elements || []);
+      const layoutSerialized = JSON.stringify(currentElements);
+      if (currentSerialized === layoutSerialized) return prev;
+      const updatedPages = pages.map(p => (
+        p.id === currentPage.id ? { ...p, elements: currentElements } : p
+      ));
+      return { ...prev, pages: updatedPages };
+    });
+  }, [config.layout?.elements, config.currentPageId]);
+
 
   const loadPresets = async () => {
     try {
@@ -260,12 +302,40 @@ export default function EditorNew() {
     }));
   };
 
+  const fitElementsToCanvas = (elements, canvasWidth, canvasHeight) => {
+    if (!elements || elements.length === 0) return elements;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    elements.forEach(el => {
+      minX = Math.min(minX, el.x);
+      minY = Math.min(minY, el.y);
+      maxX = Math.max(maxX, el.x + el.width);
+      maxY = Math.max(maxY, el.y + el.height);
+    });
+    const contentWidth = Math.max(1, maxX - minX);
+    const contentHeight = Math.max(1, maxY - minY);
+    const scale = Math.min(canvasWidth / contentWidth, canvasHeight / contentHeight);
+    const scaledWidth = contentWidth * scale;
+    const scaledHeight = contentHeight * scale;
+    const offsetX = (canvasWidth - scaledWidth) / 2 - minX * scale;
+    const offsetY = (canvasHeight - scaledHeight) / 2 - minY * scale;
+    return elements.map(el => ({
+      ...el,
+      x: el.x * scale + offsetX,
+      y: el.y * scale + offsetY,
+      width: el.width * scale,
+      height: el.height * scale
+    }));
+  };
+
   const applyTemplate = (template) => {
     let elements = template.elements.map(el => ({
       ...el, id: Date.now() + Math.random(), rotation: 0, zIndex: el.zIndex || 0,
       font: config.global_font, glow: { ...defaultGlowSettings }
     }));
-    elements = centerElements(elements);
+    const device = getDeviceDimensions();
+    const canvasWidth = Number.isFinite(device?.width) ? device.width : 800;
+    const canvasHeight = Number.isFinite(device?.height) ? device.height : 560;
+    elements = centerElements(elements, canvasWidth, canvasHeight);
     updateConfig('layout', { ...config.layout, elements });
     toast.success(`Template "${template.name}" applied!`);
   };
@@ -290,7 +360,10 @@ export default function EditorNew() {
     formData.append('file', file);
     try {
       setLoading(true);
-      const response = await axios.post(`${API}/upload/image`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const response = await axios.post(`${API}/upload/image`, formData, {
+        maxBodyLength: Infinity,
+        maxContentLength: Infinity
+      });
       const imageData = { id: Date.now() + Math.random(), url: response.data.url, name: file.name.replace(/\.[^/.]+$/, '') };
       if (type === 'background') {
         updateConfig('background_images', [...(config.background_images || []), imageData]);
@@ -299,7 +372,10 @@ export default function EditorNew() {
         updateConfig('gallery_images', [...(config.gallery_images || []), imageData]);
         addMediaToCanvas('image', imageData);
       }
-    } catch (error) { toast.error('Failed to upload image'); }
+    } catch (error) {
+      const message = error?.response?.data?.detail || error?.message || 'Failed to upload image';
+      toast.error(message);
+    }
     finally { setLoading(false); }
   };
 
@@ -310,7 +386,7 @@ export default function EditorNew() {
     formData.append('file', file);
     try {
       setLoading(true);
-      const response = await axios.post(`${API}/upload/video`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const response = await axios.post(`${API}/upload/video`, formData);
       const videoData = { id: Date.now() + Math.random(), url: response.data.url, name: response.data.name, title: file.name.replace(/\.[^/.]+$/, '') };
       updateConfig('video_tracks', [...(config.video_tracks || []), videoData]);
       addMediaToCanvas('video', videoData);
@@ -325,7 +401,7 @@ export default function EditorNew() {
     formData.append('file', file);
     try {
       setLoading(true);
-      const response = await axios.post(`${API}/upload/audio`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const response = await axios.post(`${API}/upload/audio`, formData);
       const audioData = { id: Date.now() + Math.random(), url: response.data.url, name: response.data.name, title: file.name.replace(/\.[^/.]+$/, '') };
       updateConfig('audio_tracks', [...(config.audio_tracks || []), audioData]);
       addMediaToCanvas('audio', audioData);
@@ -333,25 +409,85 @@ export default function EditorNew() {
     finally { setLoading(false); }
   };
 
-  const handleSaveProject = async () => {
-    if (!presetName.trim()) { toast.error('Please enter a project name'); return; }
+  const handleSaveProject = async (nameOverride) => {
+    const nameToSave = (nameOverride || presetName).trim();
+    if (!nameToSave) { toast.error('Please enter a project name'); return; }
     try {
       setLoading(true);
-      await axios.post(`${API}/presets`, { name: presetName, config: { ...config, app_name: presetName } });
+      const response = await axios.post(`${API}/presets`, { name: nameToSave, config: { ...config, app_name: nameToSave } });
+      setActivePresetId(response.data?.id || null);
+      setActivePresetName(nameToSave);
       toast.success('Project saved!');
       setShowSaveDialog(false); setPresetName(''); loadPresets();
     } catch (error) { toast.error('Failed to save project'); }
     finally { setLoading(false); }
   };
 
+  useEffect(() => {
+    if (!activePresetId) return;
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    autoSaveTimerRef.current = setTimeout(async () => {
+      try {
+        const nameToSave = (activePresetName || config.app_name || 'Untitled').trim();
+        await axios.put(`${API}/presets/${activePresetId}`, { name: nameToSave, config: { ...config, app_name: nameToSave } });
+      } catch (error) {
+        toast.error('Auto-save failed');
+      }
+    }, 800);
+    return () => {
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    };
+  }, [config, activePresetId, activePresetName]);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const target = e.target;
+      const isTypingTarget =
+        target &&
+        ((target.tagName === 'INPUT') || (target.tagName === 'TEXTAREA') || target.isContentEditable);
+
+      if (isTypingTarget) return;
+
+      const isMod = e.metaKey || e.ctrlKey;
+      if (isMod && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        const previous = layoutHistoryRef.current.pop();
+        if (!previous) return;
+        isUndoingLayoutRef.current = true;
+        updateConfig('layout', { ...(config.layout || {}), elements: previous });
+        return;
+      }
+
+      if (isMod && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        const fallbackName = (config.app_name || '').trim();
+        if (fallbackName) {
+          handleSaveProject(fallbackName);
+        } else {
+          setShowSaveDialog(true);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [config, updateConfig, presetName]);
+
   const handleLoadProject = async (preset) => {
     setConfig({ ...defaultConfig, ...preset, ...preset.config });
+    setActivePresetId(preset.id || null);
+    setActivePresetName(preset.name || preset.config?.app_name || '');
     setShowLoadDialog(false);
     toast.success(`Loaded "${preset.name}"`);
   };
 
   const handleDeleteProject = async (presetId) => {
-    try { await axios.delete(`${API}/presets/${presetId}`); toast.success('Project deleted'); loadPresets(); }
+    try {
+      await axios.delete(`${API}/presets/${presetId}`);
+      if (activePresetId === presetId) { setActivePresetId(null); setActivePresetName(''); }
+      toast.success('Project deleted');
+      loadPresets();
+    }
     catch (error) { toast.error('Failed to delete project'); }
   };
 
@@ -363,6 +499,62 @@ export default function EditorNew() {
     updateConfig('layout', { ...config.layout, elements: updatedElements });
   };
 
+  const cloneElements = (elements = []) => elements.map(el => ({ ...el, id: Date.now() + Math.random() }));
+
+  const getPageElements = (page) => {
+    if (!page) return [];
+    if (page.elements) return page.elements;
+    if (page.id === config.currentPageId) return config.layout?.elements || [];
+    return [];
+  };
+
+  const handleSwitchPage = (nextPageId) => {
+    setConfig(prev => {
+      const pages = prev.pages || [];
+      if (!pages.length) return prev;
+      const currentPage = pages.find(p => p.id === prev.currentPageId) || pages[0];
+      const targetPage = pages.find(p => p.id === nextPageId) || pages[0];
+      if (!targetPage || targetPage.id === prev.currentPageId) return prev;
+      const currentElements = prev.layout?.elements || [];
+      const updatedPages = pages.map(p => (
+        currentPage && p.id === currentPage.id ? { ...p, elements: currentElements } : p
+      ));
+      const targetElements = updatedPages.find(p => p.id === targetPage.id)?.elements || [];
+      return {
+        ...prev,
+        pages: updatedPages,
+        currentPageId: targetPage.id,
+        layout: { ...prev.layout, elements: targetElements }
+      };
+    });
+  };
+
+  const getNextPageId = () => {
+    const pages = config.pages || [];
+    if (!pages.length) return null;
+    const currentIndex = pages.findIndex(p => p.id === config.currentPageId);
+    if (currentIndex === -1) return pages[0]?.id;
+    return pages[(currentIndex + 1) % pages.length]?.id;
+  };
+
+  const getPrevPageId = () => {
+    const pages = config.pages || [];
+    if (!pages.length) return null;
+    const currentIndex = pages.findIndex(p => p.id === config.currentPageId);
+    if (currentIndex === -1) return pages[0]?.id;
+    return pages[(currentIndex - 1 + pages.length) % pages.length]?.id;
+  };
+
+  const handleNavigateNext = () => {
+    const nextId = getNextPageId();
+    if (nextId) handleSwitchPage(nextId);
+  };
+
+  const handleNavigatePrev = () => {
+    const prevId = getPrevPageId();
+    if (prevId) handleSwitchPage(prevId);
+  };
+
   const addPage = () => {
     const newPage = { id: `page-${Date.now()}`, title: `Page ${(config.pages?.length || 0) + 1}`, elements: [] };
     updateConfig('pages', [...(config.pages || []), newPage]);
@@ -372,10 +564,89 @@ export default function EditorNew() {
 
   const deletePage = (pageId) => {
     if ((config.pages?.length || 0) <= 1) { toast.error('Cannot delete the last page'); return; }
-    const newPages = config.pages.filter(p => p.id !== pageId);
-    updateConfig('pages', newPages);
-    if (config.currentPageId === pageId) updateConfig('currentPageId', newPages[0]?.id);
+    setConfig(prev => {
+      const pages = (prev.pages || []).filter(p => p.id !== pageId);
+      if (!pages.length) return prev;
+      const nextPage = pages.find(p => p.id === prev.currentPageId) || pages[0];
+      const nextElements = nextPage?.elements || [];
+      return {
+        ...prev,
+        pages,
+        currentPageId: nextPage?.id,
+        layout: { ...prev.layout, elements: nextElements }
+      };
+    });
     toast.success('Page deleted');
+  };
+
+  const handlePageContextMenu = (e, page, index) => {
+    e.preventDefault();
+    setSidebarContextMenu(null);
+    setPageContextMenu({ x: e.clientX, y: e.clientY, page, index });
+  };
+
+  const handleCopyPage = (page) => {
+    pageClipboardRef.current = { type: 'copy', page: { ...page, elements: cloneElements(getPageElements(page)) } };
+    setPageContextMenu(null);
+    toast.success('Page copied');
+  };
+
+  const handleCutPage = (page) => {
+    if ((config.pages?.length || 0) <= 1) { toast.error('Cannot cut the last page'); return; }
+    pageClipboardRef.current = { type: 'cut', page: { ...page, elements: getPageElements(page) } };
+    setConfig(prev => {
+      const pages = (prev.pages || []).filter(p => p.id !== page.id);
+      if (!pages.length) return prev;
+      const nextPage = pages.find(p => p.id === prev.currentPageId) || pages[0];
+      const nextElements = nextPage?.elements || [];
+      return {
+        ...prev,
+        pages,
+        currentPageId: nextPage?.id,
+        layout: { ...prev.layout, elements: nextElements }
+      };
+    });
+    setPageContextMenu(null);
+    toast.success('Page cut');
+  };
+
+  const handlePastePage = (targetPageId) => {
+    const clipboard = pageClipboardRef.current;
+    if (!clipboard?.page) return;
+    setConfig(prev => {
+      const pages = prev.pages || [];
+      const targetIndex = pages.findIndex(p => p.id === targetPageId);
+      const insertIndex = targetIndex === -1 ? pages.length : targetIndex + 1;
+      let newPages = [...pages];
+      if (clipboard.type === 'copy') {
+        const newPage = {
+          ...clipboard.page,
+          id: `page-${Date.now()}`,
+          title: clipboard.page.title ? `${clipboard.page.title} Copy` : 'Page',
+          elements: cloneElements(clipboard.page.elements || [])
+        };
+        newPages.splice(insertIndex, 0, newPage);
+      } else if (clipboard.type === 'cut') {
+        const movedPage = clipboard.page;
+        newPages.splice(insertIndex, 0, movedPage);
+        pageClipboardRef.current = null;
+      }
+      return { ...prev, pages: newPages };
+    });
+    setPageContextMenu(null);
+  };
+
+  const handleReorderPages = (fromId, toId) => {
+    if (!fromId || !toId || fromId === toId) return;
+    setConfig(prev => {
+      const pages = [...(prev.pages || [])];
+      const fromIndex = pages.findIndex(p => p.id === fromId);
+      const toIndex = pages.findIndex(p => p.id === toId);
+      if (fromIndex === -1 || toIndex === -1) return prev;
+      const [moved] = pages.splice(fromIndex, 1);
+      pages.splice(toIndex, 0, moved);
+      return { ...prev, pages };
+    });
   };
 
   const handleRename = (type, index, newName) => {
@@ -436,6 +707,26 @@ export default function EditorNew() {
     return { width: Math.round(preset.width * scale), height: Math.round(preset.height * scale), actualWidth: preset.width, actualHeight: preset.height };
   };
 
+  useEffect(() => {
+    const dims = getDeviceDimensions();
+    if (!dims?.width || !dims?.height) return;
+    setConfig(prev => {
+      const pages = prev.pages || [];
+      if (!pages.length) return prev;
+      const updatedPages = pages.map(p => ({
+        ...p,
+        elements: fitElementsToCanvas(p.elements || (p.id === prev.currentPageId ? (prev.layout?.elements || []) : []), dims.width, dims.height)
+      }));
+      const currentPage = updatedPages.find(p => p.id === prev.currentPageId) || updatedPages[0];
+      return {
+        ...prev,
+        pages: updatedPages,
+        currentPageId: currentPage?.id,
+        layout: { ...prev.layout, elements: currentPage?.elements || [] }
+      };
+    });
+  }, [selectedDevice]);
+
   // Filter fonts based on search
   const filteredFonts = fontSearch
     ? Object.entries(popularFonts).reduce((acc, [cat, fonts]) => {
@@ -457,14 +748,14 @@ export default function EditorNew() {
   };
 
   return (
-    <div className="editor-container" onClick={() => setSidebarContextMenu(null)}>
+    <div className="editor-container" onClick={() => { setSidebarContextMenu(null); setPageContextMenu(null); }}>
       {/* Top Navbar */}
       <div className="editor-navbar">
         <div className="flex items-center gap-3">
           <button className="icon-btn" onClick={() => setSidebarOpen(!sidebarOpen)}>
             {sidebarOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
           </button>
-          <h1 className="text-sm font-bold neon-text tracking-wider">PRVT BLDR</h1>
+          <h1 className="text-lg font-bold neon-text tracking-wider">PRVT</h1>
         </div>
         
         <Input value={config.app_name} onChange={(e) => { updateConfig('app_name', e.target.value); updateTextSection('title', e.target.value); }}
@@ -585,10 +876,29 @@ export default function EditorNew() {
             <div className="section-header">Pages & Transitions</div>
             <div className="space-y-2 max-h-48 overflow-y-auto">
               {(config.pages || []).map((page, idx) => (
-                <div key={page.id} className="flex items-center gap-2 p-2 bg-black/30 rounded">
-                  <span className="text-xs flex-1">{page.title}</span>
-                  <button className="icon-btn w-6 h-6" onClick={() => setRenameDialog({ open: true, type: 'page', index: idx, value: page.title })}><Edit2 className="w-3 h-3" /></button>
-                  <button className="icon-btn w-6 h-6 hover:bg-red-500/20" onClick={() => deletePage(page.id)}><Trash2 className="w-3 h-3" /></button>
+                <div
+                  key={page.id}
+                  className={`flex items-center gap-2 p-2 rounded cursor-pointer ${
+                    config.currentPageId === page.id
+                      ? 'bg-[#00ffc8]/15 ring-1 ring-[#00ffc8]/40'
+                      : 'bg-black/30 hover:bg-white/5'
+                  }`}
+                  onClick={() => handleSwitchPage(page.id)}
+                  onDoubleClick={(e) => { e.stopPropagation(); setRenameDialog({ open: true, type: 'page', index: idx, value: page.title }); }}
+                >
+                  <span className={`text-xs flex-1 ${config.currentPageId === page.id ? 'text-[#00ffc8]' : ''}`}>{page.title}</span>
+                  <button
+                    className="icon-btn w-6 h-6"
+                    onClick={(e) => { e.stopPropagation(); setRenameDialog({ open: true, type: 'page', index: idx, value: page.title }); }}
+                  >
+                    <Edit2 className="w-3 h-3" />
+                  </button>
+                  <button
+                    className="icon-btn w-6 h-6 hover:bg-red-500/20"
+                    onClick={(e) => { e.stopPropagation(); deletePage(page.id); }}
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
                 </div>
               ))}
             </div>
@@ -696,9 +1006,9 @@ export default function EditorNew() {
 
               <TabsContent value="images" className="space-y-2 mt-0">
                 <div className="section-header">Images</div>
-                <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'background')} className="hidden" id="bg-upload" />
+                <input type="file" accept="image/*,.gif" onChange={(e) => handleImageUpload(e, 'background')} className="hidden" id="bg-upload" />
                 <Button size="sm" variant="outline" className="w-full compact-btn" onClick={() => document.getElementById('bg-upload').click()}>Upload Background</Button>
-                <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'gallery')} className="hidden" id="gallery-upload" />
+                <input type="file" accept="image/*,.gif" onChange={(e) => handleImageUpload(e, 'gallery')} className="hidden" id="gallery-upload" />
                 <Button size="sm" variant="outline" className="w-full compact-btn" onClick={() => document.getElementById('gallery-upload').click()}>Upload Image</Button>
                 <div className="space-y-1 mt-3">
                   {(config.gallery_images || []).map((img, idx) => (
@@ -744,7 +1054,7 @@ export default function EditorNew() {
             {/* Pages with expandable content - click to switch */}
             <div className="section-header">Pages & Content</div>
             <div className="space-y-1 max-h-[200px] overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
-              {(config.pages || []).map((page) => (
+              {(config.pages || []).map((page, idx) => (
                 <div key={page.id}>
                   <div 
                     className={`flex items-center gap-1 p-2 rounded cursor-pointer transition-colors ${
@@ -753,9 +1063,15 @@ export default function EditorNew() {
                         : 'bg-black/20 hover:bg-black/30'
                     }`}
                     onClick={() => {
-                      updateConfig('currentPageId', page.id);
+                      handleSwitchPage(page.id);
                       setExpandedPages(prev => ({ ...prev, [page.id]: true }));
                     }}
+                    onDoubleClick={(e) => { e.stopPropagation(); setRenameDialog({ open: true, type: 'page', index: idx, value: page.title }); }}
+                    onContextMenu={(e) => handlePageContextMenu(e, page, idx)}
+                    draggable
+                    onDragStart={(e) => { e.dataTransfer.setData('text/plain', page.id); e.dataTransfer.effectAllowed = 'move'; }}
+                    onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
+                    onDrop={(e) => { e.preventDefault(); handleReorderPages(e.dataTransfer.getData('text/plain'), page.id); }}
                   >
                     <button 
                       className="p-0.5 hover:bg-white/10 rounded"
@@ -764,11 +1080,11 @@ export default function EditorNew() {
                       {expandedPages[page.id] ? <ChevronDown className="w-3 h-3 text-[#00ffc8]" /> : <ChevronRight className="w-3 h-3 text-[#00ffc8]" />}
                     </button>
                     <span className={`text-xs font-medium flex-1 ${config.currentPageId === page.id ? 'text-[#00ffc8]' : ''}`}>{page.title}</span>
-                    <span className="text-[10px] text-[#00c8ff]/50">{(config.layout?.elements || []).length} items</span>
+                    <span className="text-[10px] text-[#00c8ff]/50">{getPageElements(page).length} items</span>
                   </div>
                   {expandedPages[page.id] && (
                     <div className="ml-4 mt-1 space-y-1">
-                      {(config.layout?.elements || []).map((el) => (
+                      {getPageElements(page).map((el) => (
                         <div key={el.id} className="list-item text-xs flex items-center justify-between cursor-pointer"
                           onDoubleClick={() => handleElementDoubleClick(el)}
                           onContextMenu={(e) => handleSidebarContextMenu(e, el, page.id)}>
@@ -776,7 +1092,7 @@ export default function EditorNew() {
                           <span className="text-[10px] text-[#00c8ff]/50">{Math.round(el.x)},{Math.round(el.y)}</span>
                         </div>
                       ))}
-                      {(config.layout?.elements || []).length === 0 && (
+                      {getPageElements(page).length === 0 && (
                         <p className="text-[10px] text-muted-foreground py-2">No elements • Apply a template</p>
                       )}
                     </div>
@@ -809,12 +1125,38 @@ export default function EditorNew() {
                 updateConfig={updateConfig}
                 onElementDoubleClick={handleElementDoubleClick}
                 onGlowEdit={openGlowEditor}
+                pageNavigation={config.page_navigation}
+                onNavigateNext={handleNavigateNext}
+                onNavigatePrev={handleNavigatePrev}
                 deviceDimensions={getDeviceDimensions()}
               />
             </div>
           </div>
         </div>
       </div>
+
+      {/* Page Context Menu */}
+      {pageContextMenu && (
+        <div className="fixed z-50 bg-[#0a0a0a]/95 backdrop-blur-xl border border-[#00ffc8]/30 rounded-lg shadow-lg py-2 min-w-[170px]"
+          style={{ left: pageContextMenu.x, top: pageContextMenu.y }} onClick={(e) => e.stopPropagation()}>
+          <button className="w-full px-3 py-2 text-left text-sm hover:bg-[#00ffc8]/10 flex items-center gap-2" onClick={() => handleCopyPage(pageContextMenu.page)}>
+            <Copy className="w-4 h-4 text-[#00ffc8]" /> Copy
+          </button>
+          <button className="w-full px-3 py-2 text-left text-sm hover:bg-[#00ffc8]/10 flex items-center gap-2" onClick={() => handleCutPage(pageContextMenu.page)}>
+            <Scissors className="w-4 h-4 text-[#00ffc8]" /> Cut
+          </button>
+          <button
+            className="w-full px-3 py-2 text-left text-sm hover:bg-[#00ffc8]/10 flex items-center gap-2 disabled:opacity-40"
+            onClick={() => handlePastePage(pageContextMenu.page?.id)}
+            disabled={!pageClipboardRef.current?.page}
+          >
+            <ClipboardPaste className="w-4 h-4 text-[#00ffc8]" /> Paste
+          </button>
+          <button className="w-full px-3 py-2 text-left text-sm hover:bg-[#00ffc8]/10 flex items-center gap-2" onClick={() => { setRenameDialog({ open: true, type: 'page', index: pageContextMenu.index, value: pageContextMenu.page.title }); setPageContextMenu(null); }}>
+            <Edit2 className="w-4 h-4 text-[#00ffc8]" /> Rename
+          </button>
+        </div>
+      )}
 
       {/* Sidebar Context Menu */}
       {sidebarContextMenu && (

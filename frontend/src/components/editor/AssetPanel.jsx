@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { Image, Music, Layers, Trash2, Video, Layout } from 'lucide-react';
+import { Image, Music, Layers, Trash2, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import axios from 'axios';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL
+  || (typeof window !== 'undefined' ? `http://${window.location.hostname}:8000` : 'http://localhost:8000');
 const API = `${BACKEND_URL}/api`;
 
 export default function AssetPanel({ config, updateConfig, presets, onLoadPreset, onDeletePreset }) {
@@ -24,19 +25,23 @@ export default function AssetPanel({ config, updateConfig, presets, onLoadPreset
     try {
       setUploadingImage(true);
       const response = await axios.post(`${API}/upload/image`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        maxBodyLength: Infinity,
+        maxContentLength: Infinity
       });
-
       const imageData = {
+        id: Date.now() + Math.random(),
         url: response.data.url,
-        name: response.data.name,
+        name: response.data.name || file.name.replace(/\.[^/.]+$/, ''),
         blendMode: 'screen'
       };
 
+      const backgroundImages = Array.isArray(config.background_images) ? config.background_images : [];
+      const galleryImages = Array.isArray(config.gallery_images) ? config.gallery_images : [];
+
       if (type === 'background') {
-        updateConfig('background_images', [...config.background_images, imageData]);
+        updateConfig('background_images', [...backgroundImages, imageData]);
       } else {
-        updateConfig('gallery_images', [...config.gallery_images, imageData]);
+        updateConfig('gallery_images', [...galleryImages, imageData]);
       }
 
       toast.success('Image uploaded!');
@@ -58,16 +63,18 @@ export default function AssetPanel({ config, updateConfig, presets, onLoadPreset
     try {
       setUploadingAudio(true);
       const response = await axios.post(`${API}/upload/audio`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        maxBodyLength: Infinity,
+        maxContentLength: Infinity
       });
-
       const audioData = {
+        id: Date.now() + Math.random(),
         url: response.data.url,
-        name: response.data.name,
+        name: response.data.name || file.name.replace(/\.[^/.]+$/, ''),
         title: file.name.replace(/\.[^/.]+$/, '')
       };
 
-      updateConfig('audio_tracks', [...config.audio_tracks, audioData]);
+      const audioTracks = Array.isArray(config.audio_tracks) ? config.audio_tracks : [];
+      updateConfig('audio_tracks', [...audioTracks, audioData]);
       toast.success('Audio uploaded!');
     } catch (error) {
       toast.error('Failed to upload audio');
@@ -87,16 +94,18 @@ export default function AssetPanel({ config, updateConfig, presets, onLoadPreset
     try {
       setUploadingVideo(true);
       const response = await axios.post(`${API}/upload/video`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        maxBodyLength: Infinity,
+        maxContentLength: Infinity
       });
-
       const videoData = {
+        id: Date.now() + Math.random(),
         url: response.data.url,
-        name: response.data.name,
+        name: response.data.name || file.name.replace(/\.[^/.]+$/, ''),
         title: file.name.replace(/\.[^/.]+$/, '')
       };
 
-      updateConfig('video_tracks', [...(config.video_tracks || []), videoData]);
+      const videoTracks = Array.isArray(config.video_tracks) ? config.video_tracks : [];
+      updateConfig('video_tracks', [...videoTracks, videoData]);
       toast.success('Video uploaded!');
     } catch (error) {
       toast.error('Failed to upload video');

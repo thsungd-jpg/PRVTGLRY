@@ -5,6 +5,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 from pathlib import Path
+import mimetypes
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Any
 import uuid
@@ -144,7 +145,10 @@ async def upload_image(file: UploadFile = File(...)):
     try:
         contents = await file.read()
         base64_data = base64.b64encode(contents).decode('utf-8')
-        mime_type = file.content_type or 'image/png'
+        mime_type = file.content_type
+        if not mime_type or not mime_type.startswith('image/'):
+            guessed = mimetypes.guess_type(file.filename or '')[0]
+            mime_type = guessed or 'image/png'
         
         return {
             "url": f"data:{mime_type};base64,{base64_data}",
@@ -534,12 +538,25 @@ export default App;
 # Include the router in the main app
 app.include_router(api_router)
 
+cors_env = os.environ.get('CORS_ORIGINS')
+if cors_env:
+  allow_origins = [origin.strip() for origin in cors_env.split(',') if origin.strip()]
+else:
+  allow_origins = [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost:5173',
+    'http://127.0.0.1:5173'
+  ]
+
+allow_credentials = '*' not in allow_origins
+
 app.add_middleware(
-    CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
-    allow_methods=["*"],
-    allow_headers=["*"],
+  CORSMiddleware,
+  allow_credentials=allow_credentials,
+  allow_origins=allow_origins,
+  allow_methods=["*"],
+  allow_headers=["*"],
 )
 
 # Configure logging
