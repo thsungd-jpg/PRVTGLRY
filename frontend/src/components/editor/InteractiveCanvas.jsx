@@ -8,7 +8,7 @@ import {
   Edit2
 } from 'lucide-react';
 
-export default function InteractiveCanvas({ config, updateConfig, onElementDoubleClick }) {
+export default function InteractiveCanvas({ config, updateConfig, onElementDoubleClick, onGlowEdit }) {
   const [selectedElement, setSelectedElement] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
