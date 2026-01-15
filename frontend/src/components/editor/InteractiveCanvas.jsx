@@ -5,7 +5,7 @@ import {
   AlignStartVertical, AlignCenterVertical, AlignEndVertical,
   MoveUp, MoveDown, RotateCw, RotateCcw, Lock, Unlock, 
   FlipHorizontal, FlipVertical, Maximize, Minimize, Eye, EyeOff,
-  Edit2
+  Edit2, Sparkles
 } from 'lucide-react';
 
 export default function InteractiveCanvas({ config, updateConfig, onElementDoubleClick, onGlowEdit }) {
