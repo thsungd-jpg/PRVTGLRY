@@ -504,6 +504,14 @@ export default function InteractiveCanvas({ config, updateConfig, onElementDoubl
             <Edit2 className="w-4 h-4 text-[#00ffc8]" /> Edit Properties
           </button>
           
+          {/* Edit Glow */}
+          <button 
+            className="w-full px-3 py-2 text-left text-sm hover:bg-[#00ffc8]/10 flex items-center gap-2"
+            onClick={() => { onGlowEdit?.(contextMenu.element); setContextMenu(null); }}
+          >
+            <Sparkles className="w-4 h-4 text-[#00ffc8]" /> Edit Glow Effects
+          </button>
+          
           {/* Copy/Paste */}
           <button 
             className="w-full px-3 py-2 text-left text-sm hover:bg-[#00ffc8]/10 flex items-center gap-2"
