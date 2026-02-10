@@ -49,6 +49,7 @@
     },
     {
       "label": "Start All Servers",
+      "type": "shell",
       "dependsOn": ["Start Backend", "Start Frontend"],
       "problemMatcher": []
     }
