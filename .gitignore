@@ -2,7 +2,7 @@
 
 # IDE and editors
 .idea/
-.vscode/
+# .vscode/ - Uncommented to allow VS Code configuration for Simple Browser
 
 # Dependencies
 node_modules/
