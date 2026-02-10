@@ -138,6 +138,10 @@
   color: white;
 }
 
+.app-name-input {
+  text-align: center;
+}
+
 .compact-input:focus {
   outline: none;
   border-color: #00ffc8;

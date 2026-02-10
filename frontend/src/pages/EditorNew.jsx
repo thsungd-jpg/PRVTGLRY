@@ -94,10 +94,16 @@ const defaultGlowSettings = {
 };
 
 const defaultConfig = {
-  app_name: 'My PWA App',
+  app_name: 'PRVT',
   icon_color: '#00ffc8',
   text_color: '#FFFFFF',
   background_color: '#000000',
+  output_profile: 'sun-god',
+  background_blend_mode: 'screen',
+  background_blend_list: [],
+  background_rotation_interval_ms: 14000,
+  background_fade_duration_ms: 7000,
+  background_tint: { enabled: true, color: '#ffffff', opacity: 0.08 },
   global_font: 'Inter',
   custom_fonts: [],
   glow_effects: { buttons: false, text: false, images: false, video: false, intensity: 20 },
@@ -112,9 +118,12 @@ const defaultConfig = {
   page_navigation: { swipeEnabled: true, clickEnabled: true },
   slideshow_settings: { transition: 'fade', duration: 5000, autoPlay: true, loop: true },
   player_frame: 'glassmorphism',
+  media_frame_size: 720,
+  device_orientation: 'portrait',
+  nav_auto_hide: true,
   animations: [],
   custom_css: '',
-  text_sections: { title: 'My PWA App', header: '', subHeader: '', footer: '', subFooter: '' }
+  text_sections: { title: 'PRVT', header: '', subHeader: '', footer: '', subFooter: '' }
 };
 
 // Templates
@@ -275,10 +284,29 @@ export default function EditorNew() {
     reader.readAsDataURL(file);
   };
 
-  const updateConfig = (key, value) => setConfig(prev => ({ ...prev, [key]: value }));
+  const updateConfig = (key, value) => setConfig(prev => {
+    if (prev?.[key] === value) return prev;
+    return { ...prev, [key]: value };
+  });
 
   const updateTextSection = (section, value) => {
-    setConfig(prev => ({ ...prev, text_sections: { ...prev.text_sections, [section]: value } }));
+    setConfig(prev => {
+      if (prev?.text_sections?.[section] === value) return prev;
+      return { ...prev, text_sections: { ...prev.text_sections, [section]: value } };
+    });
+  };
+
+  const handleAppNameChange = (value) => {
+    setConfig(prev => {
+      const nextTitle = value;
+      const unchanged = prev.app_name === nextTitle && prev.text_sections?.title === nextTitle;
+      if (unchanged) return prev;
+      return {
+        ...prev,
+        app_name: nextTitle,
+        text_sections: { ...prev.text_sections, title: nextTitle }
+      };
+    });
   };
 
   // Center elements on canvas
@@ -582,7 +610,8 @@ export default function EditorNew() {
   const handlePageContextMenu = (e, page, index) => {
     e.preventDefault();
     setSidebarContextMenu(null);
-    setPageContextMenu({ x: e.clientX, y: e.clientY, page, index });
+    const rect = e.currentTarget.getBoundingClientRect();
+    setPageContextMenu({ x: rect.right + 6, y: rect.top, page, index });
   };
 
   const handleCopyPage = (page) => {
@@ -664,7 +693,8 @@ export default function EditorNew() {
   // Sidebar context menu handlers
   const handleSidebarContextMenu = (e, element, pageId) => {
     e.preventDefault();
-    setSidebarContextMenu({ x: e.clientX, y: e.clientY, element, pageId });
+    const rect = e.currentTarget.getBoundingClientRect();
+    setSidebarContextMenu({ x: rect.right + 6, y: rect.top, element, pageId });
   };
 
   const copyElementFromSidebar = () => {
@@ -700,11 +730,14 @@ export default function EditorNew() {
   const getDeviceDimensions = () => {
     const preset = devicePresets[selectedDevice];
     if (!preset) return { width: '100%', height: '100%' };
+    const orientation = config.device_orientation || 'portrait';
+    const baseWidth = orientation === 'landscape' ? preset.height : preset.width;
+    const baseHeight = orientation === 'landscape' ? preset.width : preset.height;
     const maxWidth = window.innerWidth - 400, maxHeight = window.innerHeight - 200;
     let scale = 1;
-    if (preset.width > maxWidth) scale = maxWidth / preset.width;
-    if (preset.height * scale > maxHeight) scale = maxHeight / preset.height;
-    return { width: Math.round(preset.width * scale), height: Math.round(preset.height * scale), actualWidth: preset.width, actualHeight: preset.height };
+    if (baseWidth > maxWidth) scale = maxWidth / baseWidth;
+    if (baseHeight * scale > maxHeight) scale = maxHeight / baseHeight;
+    return { width: Math.round(baseWidth * scale), height: Math.round(baseHeight * scale), actualWidth: baseWidth, actualHeight: baseHeight };
   };
 
   useEffect(() => {
@@ -725,7 +758,7 @@ export default function EditorNew() {
         layout: { ...prev.layout, elements: currentPage?.elements || [] }
       };
     });
-  }, [selectedDevice]);
+  }, [selectedDevice, config.device_orientation]);
 
   // Filter fonts based on search
   const filteredFonts = fontSearch
@@ -758,8 +791,13 @@ export default function EditorNew() {
           <h1 className="text-lg font-bold neon-text tracking-wider">PRVT</h1>
         </div>
         
-        <Input value={config.app_name} onChange={(e) => { updateConfig('app_name', e.target.value); updateTextSection('title', e.target.value); }}
-          className="compact-input w-48" placeholder="App Name" />
+        <Input
+          value={config.app_name}
+          onChange={(e) => handleAppNameChange(e.target.value)}
+          onDoubleClick={(e) => e.target.select()}
+          className="compact-input w-48 app-name-input"
+          placeholder="App Name"
+        />
 
         <div className="flex items-center gap-2">
           <Button size="sm" variant="outline" className="compact-btn" onClick={() => setShowSaveDialog(true)}><Save className="w-3 h-3 mr-1" />Save</Button>
@@ -851,7 +889,7 @@ export default function EditorNew() {
         {/* Layout */}
         <Popover>
           <PopoverTrigger asChild><button className="icon-btn"><Grid3x3 className="w-4 h-4" /></button></PopoverTrigger>
-          <PopoverContent className="popover-panel w-64">
+          <PopoverContent className="popover-panel w-72">
             <div className="section-header">Layout</div>
             <div className="space-y-3">
               <div className="flex items-center justify-between"><Label className="text-xs">Snap to Grid</Label>
@@ -859,12 +897,75 @@ export default function EditorNew() {
               <div><Label className="text-xs mb-2 block">Grid: {config.layout?.snapGrid || 10}px</Label>
                 <input type="range" min="5" max="50" step="5" value={config.layout?.snapGrid || 10}
                   onChange={(e) => updateConfig('layout', { ...config.layout, snapGrid: parseInt(e.target.value) })} className="w-full" /></div>
+              <div><Label className="text-xs mb-2 block">Media Frame Size: {config.media_frame_size || 720}px</Label>
+                <input type="range" min="360" max="1200" step="20" value={config.media_frame_size || 720}
+                  onChange={(e) => updateConfig('media_frame_size', parseInt(e.target.value))} className="w-full" /></div>
             </div>
             <div className="cyber-divider" />
             <div className="section-header">Player Frame Style</div>
             <Select value={config.player_frame} onValueChange={(value) => updateConfig('player_frame', value)}>
               <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
               <SelectContent>{Object.entries(playerFrameStyles).map(([key, style]) => (<SelectItem key={key} value={key}>{style.name}</SelectItem>))}</SelectContent>
+            </Select>
+            <div className="cyber-divider" />
+            <div className="section-header">Atmosphere</div>
+            <div className="space-y-3">
+              <div><Label className="text-xs mb-1 block">Blend Mode</Label>
+                <Select value={config.background_blend_mode || 'screen'} onValueChange={(value) => updateConfig('background_blend_mode', value)}>
+                  <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {['screen', 'normal', 'overlay', 'multiply', 'lighten', 'darken', 'color-dodge', 'color-burn', 'hard-light', 'soft-light', 'difference', 'exclusion'].map((mode) => (
+                      <SelectItem key={mode} value={mode}>{mode}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs mb-1 block">Blend Cycle (comma-separated)</Label>
+                <Input
+                  value={(config.background_blend_list || []).join(', ')}
+                  onChange={(e) => updateConfig('background_blend_list', e.target.value.split(',').map(v => v.trim()).filter(Boolean))}
+                  className="compact-input"
+                  placeholder="screen, overlay, soft-light"
+                />
+              </div>
+              <div>
+                <Label className="text-xs mb-2 block">Rotation: {(config.background_rotation_interval_ms || 14000) / 1000}s</Label>
+                <input type="range" min="6000" max="30000" step="1000" value={config.background_rotation_interval_ms || 14000}
+                  onChange={(e) => updateConfig('background_rotation_interval_ms', parseInt(e.target.value))} className="w-full" />
+              </div>
+              <div>
+                <Label className="text-xs mb-2 block">Fade: {(config.background_fade_duration_ms || 7000) / 1000}s</Label>
+                <input type="range" min="2000" max="12000" step="500" value={config.background_fade_duration_ms || 7000}
+                  onChange={(e) => updateConfig('background_fade_duration_ms', parseInt(e.target.value))} className="w-full" />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Tint Overlay</Label>
+                <Switch checked={config.background_tint?.enabled ?? true} onCheckedChange={(checked) => updateConfig('background_tint', { ...config.background_tint, enabled: checked })} />
+              </div>
+              {(config.background_tint?.enabled ?? true) && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs">Tint Color</Label>
+                    <input type="color" value={config.background_tint?.color || '#ffffff'}
+                      onChange={(e) => updateConfig('background_tint', { ...config.background_tint, color: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label className="text-xs mb-2 block">Opacity: {Math.round((config.background_tint?.opacity ?? 0.08) * 100)}%</Label>
+                    <input type="range" min="0" max="0.3" step="0.01" value={config.background_tint?.opacity ?? 0.08}
+                      onChange={(e) => updateConfig('background_tint', { ...config.background_tint, opacity: parseFloat(e.target.value) })} className="w-full" />
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="cyber-divider" />
+            <div className="section-header">Output</div>
+            <Select value={config.output_profile || 'sun-god'} onValueChange={(value) => updateConfig('output_profile', value)}>
+              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="sun-god">Sun God Experience (STATS A)</SelectItem>
+                <SelectItem value="classic">Classic Builder</SelectItem>
+              </SelectContent>
             </Select>
           </PopoverContent>
         </Popover>
@@ -952,6 +1053,16 @@ export default function EditorNew() {
           <PopoverTrigger asChild><button className="icon-btn flex items-center gap-1 w-auto px-2"><Monitor className="w-4 h-4" /><ChevronDown className="w-3 h-3" /></button></PopoverTrigger>
           <PopoverContent className="popover-panel w-72 max-h-96 overflow-y-auto">
             <div className="section-header">Device Preview</div>
+            <div className="flex items-center gap-2 mb-3">
+              <button
+                className={`flex-1 text-xs py-1 rounded border ${config.device_orientation === 'portrait' ? 'bg-[#00ffc8]/20 border-[#00ffc8]/40 text-[#00ffc8]' : 'border-[#00ffc8]/10 hover:bg-white/5'}`}
+                onClick={() => updateConfig('device_orientation', 'portrait')}
+              >Portrait</button>
+              <button
+                className={`flex-1 text-xs py-1 rounded border ${config.device_orientation === 'landscape' ? 'bg-[#00ffc8]/20 border-[#00ffc8]/40 text-[#00ffc8]' : 'border-[#00ffc8]/10 hover:bg-white/5'}`}
+                onClick={() => updateConfig('device_orientation', 'landscape')}
+              >Landscape</button>
+            </div>
             {Object.entries(Object.entries(devicePresets).reduce((acc, [key, val]) => {
               const category = key.includes('iphone') ? 'iPhone' : key.includes('ipad') ? 'iPad' : key.includes('pixel') ? 'Pixel' :
                 key.includes('galaxy') ? 'Galaxy' : key.includes('surface') ? 'Surface' : key.includes('nest') ? 'Nest' : 'Other';
@@ -1297,7 +1408,10 @@ export default function EditorNew() {
       </Dialog>
 
       {/* Rename Dialog */}
-      <Dialog open={renameDialog.open} onOpenChange={(open) => setRenameDialog({ ...renameDialog, open })}>
+      <Dialog
+        open={renameDialog.open}
+        onOpenChange={(open) => setRenameDialog(prev => (prev.open === open ? prev : { ...prev, open }))}
+      >
         <DialogContent className="bg-[#0a0a0a] border-[#00ffc8]/30">
           <DialogHeader><DialogTitle className="text-[#00ffc8]">Rename</DialogTitle></DialogHeader>
           <div className="py-4"><Input value={renameDialog.value} onChange={(e) => setRenameDialog({ ...renameDialog, value: e.target.value })} placeholder="Enter new name" autoFocus /></div>
